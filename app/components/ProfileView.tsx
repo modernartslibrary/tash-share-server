@@ -57,22 +57,22 @@ export default function ProfileView({ data }: ProfileViewProps) {
   return (
     <div className="flex flex-col bg-white min-h-screen pb-32">
       {/* Header Section */}
-      <div className="flex justify-between items-start pt-8 pb-4 px-[16px] mb-1">
+      <div className="flex justify-between items-start pt-6 pb-2 px-[16px] mb-1">
         <div className="flex flex-col flex-1">
-          <h1 className="text-[25px] font-bold tracking-tight leading-tight text-black mb-[2px]">
+          <h1 className="text-[20px] font-bold tracking-tight leading-tight text-black mb-[1px]">
             {data.nickname || data.username}
           </h1>
-          <p className="text-[14px] text-black font-normal mb-[2px]">
+          <p className="text-[13px] text-gray-500 font-normal mb-[2px]">
             {data.username}
           </p>
-          <div className="flex items-center text-[11px] text-black font-normal">
+          <div className="flex items-center text-[11px] text-gray-400 font-normal">
             <span>팔로워 {data.followers_count || 0}</span>
             <span className="mx-1">·</span>
             <span>작품 {data.works_count || 0}</span>
           </div>
         </div>
 
-        <div className="w-[80px] h-[80px] overflow-hidden rounded-full border border-gray-100 ml-4">
+        <div className="w-[64px] h-[64px] overflow-hidden rounded-full border border-gray-100 ml-4">
           <img src={data.avatar_url || "/icons/default_profile.jpg"} className="w-full h-full object-cover" alt="profile avatar" />
         </div>
       </div>
@@ -98,13 +98,13 @@ export default function ProfileView({ data }: ProfileViewProps) {
 
       {/* Sub Filters Row */}
       {activeTab !== 'lists' && (
-        <div className="flex items-center px-[16px] py-3 mb-1 overflow-x-auto no-scrollbar gap-2">
+        <div className="flex items-center px-[16px] py-2 mb-1 overflow-x-auto no-scrollbar gap-2">
           <div className="flex gap-2">
             {['음악', '영화', 'TV', '책'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter((prev: string) => prev === filter ? '' : filter)}
-                className={`h-[36px] px-4 rounded-full text-[14px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
+                className={`h-[30px] px-3 rounded-full text-[13px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
                   ? 'bg-black border-black text-white'
                   : 'bg-white border-black text-black'
                   }`}
@@ -123,7 +123,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
             >
               <img
                 src={viewType === 'grid' ? "/icons/profile_post_list.png" : "/icons/profile_post_grid.png"}
-                className="w-[20px] h-[20px]"
+                className="w-[18px] h-[18px]"
                 alt="toggle view"
               />
             </button>
@@ -165,7 +165,7 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
       className={`w-[24px] h-[24px] object-contain transition-all opacity-100 ${active ? 'scale-110' : ''}`}
       alt="tab icon"
     />
-    {active && <div className="absolute bottom-0 w-8 h-[2px] bg-black rounded-t-full"></div>}
+    {active && <div className="absolute bottom-0 w-6 h-[2px] bg-black rounded-t-full"></div>}
   </button>
 );
 
@@ -187,39 +187,39 @@ const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) 
   <div className="flex flex-col bg-white">
     {posts.map((post) => (
       <div key={post.id} className="py-2 px-[16px]">
-        <div className="flex items-start mb-4 relative">
-          <div className="w-[80px] h-[80px] overflow-hidden bg-gray-50 mr-4 flex-shrink-0">
+        <div className="flex items-start mb-3 relative">
+          <div className="w-[60px] h-[60px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
             <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
           </div>
-          <div className="flex flex-col pt-0.5 flex-1">
-            <h3 className="text-[17px] font-normal text-black leading-tight mb-1 line-clamp-1">
+          <div className="flex flex-col pt-0 flex-1">
+            <h3 className="text-[15px] font-normal text-black leading-tight mb-0.5 line-clamp-1">
               {post.works?.work_title || "제목 없음"}
             </h3>
-            <p className="text-[14px] text-gray-400 font-normal mb-1.5">
+            <p className="text-[13px] text-gray-400 font-normal mb-1">
               {post.works?.work_type || "기타"} · {post.works?.artist_name || "알 수 없음"}, {post.works?.work_year || ""}
             </p>
             {post.rating && (
-              <div className="flex items-center text-black text-[14px]">
-                <img src="/icons/star_icon.png" className="w-[13px] h-[13px] mr-1" alt="rating star" />
+              <div className="flex items-center text-black text-[13px]">
+                <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
                 <span>{post.rating.toFixed(1)}</span>
               </div>
             )}
           </div>
         </div>
 
-        <p className="text-[16px] text-black font-normal leading-relaxed mb-4 whitespace-pre-wrap">
+        <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
           {post.content}
         </p>
 
         {!hideStats && (
-          <div className="flex items-center text-[13px] text-black font-normal">
-            <div className="flex items-center mr-6">
-              <img src="/icons/like_button_no.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="like icon" />
-              <span className="text-[15px]">{post.likes_count || 0}</span>
+          <div className="flex items-center text-[12px] text-black font-normal">
+            <div className="flex items-center mr-5">
+              <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
+              <span className="text-[13px]">{post.likes_count || 0}</span>
             </div>
-            <div className="flex items-center mr-6">
-              <img src="/icons/post_comment.png" className="w-[22px] h-[22px] mr-1.5 opacity-80" alt="comment icon" />
-              <span className="text-[15px]">{post.comments_count || 0}</span>
+            <div className="flex items-center mr-5">
+              <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
+              <span className="text-[13px]">{post.comments_count || 0}</span>
             </div>
             <div className="ml-auto text-gray-400">
               {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
@@ -265,17 +265,17 @@ const ListSection = ({ lists }: { lists: List[] }) => {
   }
 
   return (
-    <div className="flex flex-col px-5 gap-1 pt-2">
+    <div className="flex flex-col px-5 gap-0.5 pt-1">
       {lists.map((list) => (
         <div key={list.id} className="flex items-center py-2 active:bg-gray-50 px-2 transition-colors">
           <img
             src={list.cover_url || '/icons/default_profile.jpg'}
-            className="w-16 h-16 object-cover mr-4 border border-gray-100"
+            className="w-14 h-14 object-cover mr-4 border border-gray-100"
             alt={list.title || "list cover"}
           />
           <div className="flex flex-col">
-            <h3 className="text-[17px] font-normal text-black mb-0.5">{list.title}</h3>
-            <p className="text-[14px] text-black font-normal">{formatWorkCount(list.work_counts)}</p>
+            <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
+            <p className="text-[13px] text-black font-normal">{formatWorkCount(list.work_counts)}</p>
           </div>
         </div>
       ))}
