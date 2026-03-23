@@ -104,7 +104,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
               <button
                 key={filter}
                 onClick={() => setActiveFilter((prev: string) => prev === filter ? '' : filter)}
-                className={`h-[30px] px-2.5 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
+                className={`h-[30px] px-4 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
                   ? 'bg-black border-black text-white'
                   : 'bg-white border-black text-black'
                   }`}
@@ -191,15 +191,15 @@ const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) 
           <div className="w-[60px] h-[60px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
             <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
           </div>
-          <div className="flex flex-col flex-1 min-w-0">
-            <h3 className="text-[15px] font-normal text-black leading-tight mb-0.5 line-clamp-1">
+          <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+            <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
               {post.works?.work_title || "제목 없음"}
             </h3>
-            <p className="text-[13px] text-gray-400 font-normal mb-1">
+            <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
               {post.works?.work_type || "기타"} · {post.works?.artist_name || "알 수 없음"}, {post.works?.work_year || ""}
             </p>
             {post.rating && (
-              <div className="flex items-center text-black text-[13px]">
+              <div className="flex items-center text-black text-[13px] mt-0.5">
                 <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
                 <span>{post.rating.toFixed(1)}</span>
               </div>
