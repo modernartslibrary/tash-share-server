@@ -187,11 +187,11 @@ const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) 
   <div className="flex flex-col bg-white">
     {posts.map((post) => (
       <div key={post.id} className="py-2 px-[16px]">
-        <div className="flex items-start mb-3 relative">
+        <div className="flex items-center mb-3 relative">
           <div className="w-[60px] h-[60px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
             <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
           </div>
-          <div className="flex flex-col pt-0 flex-1">
+          <div className="flex flex-col flex-1 min-w-0">
             <h3 className="text-[15px] font-normal text-black leading-tight mb-0.5 line-clamp-1">
               {post.works?.work_title || "제목 없음"}
             </h3>
@@ -275,7 +275,7 @@ const ListSection = ({ lists }: { lists: List[] }) => {
           />
           <div className="flex flex-col">
             <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
-            <p className="text-[13px] text-black font-normal">{formatWorkCount(list.work_counts)}</p>
+            <p className="text-[11px] text-gray-400 font-normal">{formatWorkCount(list.work_counts)}</p>
           </div>
         </div>
       ))}
