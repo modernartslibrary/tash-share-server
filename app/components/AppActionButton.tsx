@@ -2,7 +2,10 @@
 
 export default function AppActionButton({ type, id }: { type: string, id: string }) {
   const handleOpenApp = () => {
-    const deepLink = `io.supabase.tash://${type}/${id}`;
+    // GoRouter는 브라우저 URL의 Path 부분을 기준으로 매칭하므로, 
+    // HTTPS 주소를 사용하는 것이 가장 안정적으로 이동합니다.
+    const mappedType = type === 'user' ? 'profile' : type;
+    const deepLink = `https://link.tash.kr/${mappedType}/${id}`;
 
     // 플랫폼별 스토어 주소 (TASH 앱 정보)
     const playStoreUrl = `https://play.google.com/store/apps/details?id=com.MAL.tash`;
