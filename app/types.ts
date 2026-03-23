@@ -44,6 +44,8 @@ export interface List {
   profiles?: Profile;
   created_at?: string;
   works_count?: number;
+  work_counts?: Record<string, number>;
+  is_liked?: boolean;
 }
 
 export interface Artist {

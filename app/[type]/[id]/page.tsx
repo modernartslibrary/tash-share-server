@@ -41,7 +41,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       const followingPromise = supabase.from("follows").select("*", { count: 'exact', head: true }).eq("follower_id", profileRes.data.id);
       const worksCountPromise = supabase.from("work_likes").select("*", { count: 'exact', head: true }).eq("user_id", profileRes.data.id);
       const postsPromise = supabase.from("posts").select("*, works(image_url, work_type, work_title, artist_name, work_year)").eq("user_id", profileRes.data.id).order("created_at", { ascending: false }).limit(12);
-      const listsPromise = supabase.from("lists").select("*").eq("user_id", profileRes.data.id).order("created_at", { ascending: false }).limit(6);
+      const listsPromise = supabase.rpc("get_user_lists", { p_user_id: profileRes.data.id, p_limit: 6, p_offset: 0 });
       const archivesPromise = supabase.from("work_likes").select("*, works(image_url, work_type, work_title, artist_name, work_year)").eq("user_id", profileRes.data.id).order("created_at", { ascending: false }).limit(12);
 
       const results = await Promise.all([
@@ -140,7 +140,7 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
   return (
     <div className="min-h-screen bg-white text-black font-sans pb-24">
       {type !== 'profile' && (
-        <header className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md flex items-center px-6 z-50 border-b border-gray-50">
+        <header className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md flex items-center px-6 z-50">
           <img src="/icons/app_logo.png" className="h-6 object-contain" alt="TASH" />
         </header>
       )}
@@ -162,7 +162,7 @@ function WorkLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col items-center py-8">
       <div className="w-[73%] aspect-[2/3] mb-8 relative">
-        <img src={data.image_url} className="w-full h-full object-cover rounded-2xl border border-gray-100" alt={data.work_title || "work"} />
+        <img src={data.image_url} className="w-full h-full object-cover border border-gray-100" alt={data.work_title || "work"} />
       </div>
       <h2 className="text-2xl font-black mb-1 text-center px-4 leading-tight">{data.work_title}</h2>
       <p className="text-gray-500 font-semibold mb-8">{data.display_artist_name || data.artist_name || "TASH"}</p>
@@ -183,8 +183,8 @@ function PostLayout({ data }: { data: Post }) {
         <span className="font-bold text-[17px]">{data.profiles?.username}</span>
       </div>
 
-      <div className="bg-[#F8F9FA] rounded-2xl p-4 flex items-center mb-6 border border-gray-100/50 mx-4">
-        <img src={data.works?.image_url} className="w-14 h-20 rounded-lg object-cover mr-4 border border-gray-200/30" alt="work" />
+      <div className="bg-[#F8F9FA] p-4 flex items-center mb-6 border border-gray-100/50 mx-4">
+        <img src={data.works?.image_url} className="w-14 h-20 object-cover mr-4 border border-gray-200/30" alt="work" />
         <div className="flex flex-col">
           <span className="font-bold text-[15px] line-clamp-1 mb-0.5">{data.works?.work_title}</span>
           <span className="text-xs text-gray-400 font-medium">{data.works?.artist_name}</span>
@@ -217,7 +217,7 @@ function ListLayout({ data }: { data: List }) {
     return (
       <div className="flex flex-col items-center py-8">
         <div className="w-48 aspect-square mb-8 relative">
-          <img src={data.cover_url} className="w-full h-full object-cover rounded-3xl border border-gray-50" alt={data.title || "list"} />
+          <img src={data.cover_url} className="w-full h-full object-cover border border-gray-50" alt={data.title || "list"} />
         </div>
         <h2 className="text-2xl font-extrabold mb-2">{data.title}</h2>
         <p className="text-gray-400 text-sm">Created by {data.profiles?.username}</p>
