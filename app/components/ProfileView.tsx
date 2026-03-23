@@ -165,7 +165,7 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
       className={`w-[20px] h-[20px] object-contain transition-all opacity-100 ${active ? 'scale-110' : ''}`}
       alt="tab icon"
     />
-    {active && <div className="absolute bottom-0 w-6 h-[2px] bg-black rounded-t-full"></div>}
+    {active && <div className="absolute bottom-0 w-[26px] h-[1.5px] bg-black"></div>}
   </button>
 );
 
@@ -186,9 +186,9 @@ const PostGrid = ({ posts }: { posts: Post[] }) => (
 const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) => (
   <div className="flex flex-col bg-white">
     {posts.map((post) => (
-      <div key={post.id} className="py-2 px-[16px]">
-        <div className="flex items-center mb-3 relative">
-          <div className="w-[60px] h-[60px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
+      <div key={post.id} className={`${hideStats ? 'py-0' : 'py-2'} px-[16px]`}>
+        <div className="flex items-center mb-0.5 relative">
+          <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
             <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
           </div>
           <div className="flex flex-col flex-1 min-w-0 gap-0.5">
@@ -265,12 +265,12 @@ const ListSection = ({ lists }: { lists: List[] }) => {
   }
 
   return (
-    <div className="flex flex-col px-5 gap-0.5 pt-1">
+    <div className="flex flex-col px-5 gap-0 pt-0.5">
       {lists.map((list) => (
-        <div key={list.id} className="flex items-center py-2 active:bg-gray-50 px-2 transition-colors">
+        <div key={list.id} className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors">
           <img
             src={list.cover_url || '/icons/default_profile.jpg'}
-            className="w-14 h-14 object-cover mr-4 border border-gray-100"
+            className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
             alt={list.title || "list cover"}
           />
           <div className="flex flex-col">
