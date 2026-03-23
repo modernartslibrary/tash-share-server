@@ -62,7 +62,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
           <h1 className="text-[20px] font-bold tracking-tight leading-tight text-black mb-[1px]">
             {data.nickname || data.username}
           </h1>
-          <p className="text-[13px] text-gray-500 font-normal mb-[2px]">
+          <p className="text-[13px] text-black font-normal mb-[2px]">
             {data.username}
           </p>
           <div className="flex items-center text-[11px] text-gray-400 font-normal">
@@ -98,13 +98,13 @@ export default function ProfileView({ data }: ProfileViewProps) {
 
       {/* Sub Filters Row */}
       {activeTab !== 'lists' && (
-        <div className="flex items-center px-[16px] py-2 mb-1 overflow-x-auto no-scrollbar gap-2">
-          <div className="flex gap-2">
+        <div className="flex items-center px-[16px] py-2 mb-1 overflow-x-auto no-scrollbar gap-1.5">
+          <div className="flex gap-1.5">
             {['음악', '영화', 'TV', '책'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter((prev: string) => prev === filter ? '' : filter)}
-                className={`h-[30px] px-3 rounded-full text-[13px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
+                className={`h-[30px] px-2.5 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
                   ? 'bg-black border-black text-white'
                   : 'bg-white border-black text-black'
                   }`}
@@ -162,7 +162,7 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
   >
     <img
       src={icon}
-      className={`w-[24px] h-[24px] object-contain transition-all opacity-100 ${active ? 'scale-110' : ''}`}
+      className={`w-[20px] h-[20px] object-contain transition-all opacity-100 ${active ? 'scale-110' : ''}`}
       alt="tab icon"
     />
     {active && <div className="absolute bottom-0 w-6 h-[2px] bg-black rounded-t-full"></div>}
