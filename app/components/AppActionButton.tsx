@@ -2,7 +2,7 @@
 
 export default function AppActionButton({ type, id }: { type: string, id: string }) {
   const handleOpenApp = () => {
-    const deepLink = `tash://${type}/${id}`;
+    const deepLink = `io.supabase.tash://${type}/${id}`;
 
     // 플랫폼별 스토어 주소 (TASH 앱 정보)
     const playStoreUrl = `https://play.google.com/store/apps/details?id=com.MAL.tash`;
@@ -33,10 +33,10 @@ export default function AppActionButton({ type, id }: { type: string, id: string
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-white via-white to-white flex justify-center border-t border-gray-50 z-50">
+    <div className="fixed bottom-10 left-0 right-0 p-5 flex justify-center z-50 pointer-events-none">
       <button
         onClick={handleOpenApp}
-        className="w-full max-w-md py-4 bg-black text-white rounded-2xl font-bold text-[16px] text-center active:scale-95 transition-transform"
+        className="w-full max-w-[420px] bg-black text-white h-[64px] rounded-full text-[17px] font-black shadow-2xl active:scale-95 transition-all pointer-events-auto"
       >
         앱에서 열기
       </button>

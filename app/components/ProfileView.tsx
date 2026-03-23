@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Post, List, Profile } from '../types';
+import AppActionButton from './AppActionButton';
 
 interface ProfileViewProps {
   data: Profile;
@@ -137,14 +138,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
       </div>
 
       {/* Sticky Bottom CTA */}
-      <div className="fixed bottom-10 left-0 right-0 flex justify-center px-8 z-50 pointer-events-none">
-        <button
-          className="w-full max-w-[420px] bg-black text-white h-[64px] rounded-full text-[17px] font-black shadow-2xl active:scale-95 transition-all pointer-events-auto"
-          onClick={() => window.open('https://link.tash.kr/app', '_blank')}
-        >
-          앱에서 열기
-        </button>
-      </div>
+      <AppActionButton type="profile" id={data.id} />
     </div>
   );
 }
