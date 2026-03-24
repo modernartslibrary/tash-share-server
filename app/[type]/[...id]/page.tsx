@@ -74,85 +74,82 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { data: null, error: "Config Missing" };
     if (type === "work") {
       console.log(`[fetchContent] Resolving work for ID: "${decodedId}"`);
-      
-      // Step 1: Try finding the work directly by exact match
-      const { data: exactMatch } = await supabase.from("works").select("*").eq("id", decodedId).maybeSingle();
-      if (exactMatch) {
-         console.log(`[fetchContent] Found exact match: ${exactMatch.id}`);
-         const enriched = await enrichWorkData(exactMatch);
-         return { data: enriched, error: null };
-      }
-
-      // Step 2: Try finding by Spotify ID suffix (if it looks like one or contains one)
       const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
-      console.log(`[fetchContent] Searching for suffix match: "%:${spotifyId}"`);
-      const { data: suffixMatch } = await supabase.from("works").select("*").ilike("id", `%:${spotifyId}`).maybeSingle();
-      if (suffixMatch) {
-        console.log(`[fetchContent] Found via suffix: ${suffixMatch.id}`);
-        const enriched = await enrichWorkData(suffixMatch);
-        return { data: enriched, error: null };
-      }
+      
+      // 1. Try finding in works table (exact or suffix)
+      const { data: exactMatch } = await supabase.from("works").select("*").eq("id", decodedId).maybeSingle();
+      const { data: suffixMatch } = !exactMatch ? await supabase.from("works").select("*").ilike("id", `%:${spotifyId}`).maybeSingle() : { data: null };
+      
+      const dbWork = exactMatch || suffixMatch;
 
-      // Step 3: Fallback - Search in album caches across the whole database
-      console.log(`[fetchContent] No indexed work found. Searching album caches for "${spotifyId}"`);
+      // 2. Always try searching album caches for tracks, as they have the most accurate credits
+      // Even if we found it in DB, the DB record might have sparse credits.
       const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
         search_id: spotifyId 
       });
 
-      if (albums && albums.length > 0) {
-        const album = albums[0];
-        const track = album.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
-        if (track) {
-          console.log(`[fetchContent] Success! Resolved via album "${album.work_title}" cache.`);
-          
-          const enrichedTrack = await enrichWorkData({ id: track.id });
-          
-          // Construct track-specific credits from the artists array in the cache
-          const trackCredits = (track.artists || []).map((a: any, idx: number) => ({
-            id: a.id,
-            name: a.name,
-            profile_path: null,
-            role: 'artist',
-            artist_order: idx
-          }));
+      const parentAlbum = albums && albums.length > 0 ? albums[0] : null;
+      const trackInCache = parentAlbum?.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
 
-          // Try to fetch artist profile images in bulk from the database
-          if (trackCredits.length > 0) {
-            const artistIds = trackCredits.map(c => `artist:music:${c.id}`);
-            const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
-            if (dbArtists) {
-              trackCredits.forEach(c => {
-                const match = dbArtists.find(da => da.id.endsWith(c.id));
-                if (match) c.profile_path = match.profile_path;
-              });
-            }
+      // CASE A: It's a track (either in DB or in Cache)
+      if (trackInCache || dbWork?.work_type === 'track') {
+        const id = trackInCache?.id || dbWork?.id || spotifyId;
+        const enriched = await enrichWorkData({ id });
+        
+        // Track credits construction (Primarily from cache for performers)
+        const artistsFromCache = trackInCache?.artists || [];
+        const trackCredits = artistsFromCache.map((a: any, idx: number) => ({
+          id: a.id,
+          name: a.name,
+          profile_path: null,
+          role: 'artist',
+          artist_order: idx
+        }));
+
+        // Fetch artist profile images in bulk
+        if (trackCredits.length > 0) {
+          const artistIds = trackCredits.map(c => `artist:music:${c.id}`);
+          const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
+          if (dbArtists) {
+            trackCredits.forEach(c => {
+              const match = dbArtists.find(da => da.id.endsWith(c.id));
+              if (match) c.profile_path = match.profile_path;
+            });
           }
-
-          return {
-            data: {
-              id: track.id,
-              work_title: track.name,
-              work_type: 'track',
-              image_url: album.image_url,
-              artist_name: track.artists?.map((a: any) => a.name).join(', ') || album.artist_name,
-              work_year: album.work_year,
-              genres: album.genres,
-              parent_album_cache: {
-                id: album.id,
-                title: album.work_title,
-                poster_path: album.image_url,
-                artist_names_display: album.artist_name || album.display_artist_name
-              },
-              rating_avg: enrichedTrack.rating_avg || 0,
-              rating_count: enrichedTrack.rating_count || 0,
-              credits: trackCredits,
-              biography: null // Never show album biography on a track page
-            } as any,
-            error: null
-          };
         }
+
+        return {
+          data: {
+            id: id,
+            work_title: trackInCache?.name || dbWork?.work_title || decodedId,
+            work_type: 'track',
+            image_url: parentAlbum?.image_url || dbWork?.image_url,
+            artist_name: artistsFromCache.map((a: any) => a.name).join(', ') || dbWork?.artist_name || parentAlbum?.artist_name,
+            work_year: parentAlbum?.work_year || dbWork?.work_year,
+            genres: parentAlbum?.genres || dbWork?.genres,
+            parent_album_cache: parentAlbum ? {
+              id: parentAlbum.id,
+              title: parentAlbum.work_title,
+              poster_path: parentAlbum.image_url,
+              artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name
+            } : dbWork?.parent_album_cache,
+            rating_avg: enriched.rating_avg || 0,
+            rating_count: enriched.rating_count || 0,
+            credits: trackCredits.length > 0 ? trackCredits : enriched.credits,
+            biography: null // Never show album biography on a track page
+          } as any,
+          error: null
+        };
       }
 
+      // CASE B: It's not a track (Album, Movie, TV, etc.)
+      if (dbWork) {
+        console.log(`[fetchContent] Found exact or suffix match for non-track: ${dbWork.id}`);
+        const enriched = await enrichWorkData(dbWork);
+        return { data: enriched, error: null };
+      }
+
+      // Failed to resolve
       console.error(`[fetchContent] All resolution failed for "${decodedId}"`);
       return { data: null, error: "Not Found" };
     } else if (type === "post") {
@@ -224,8 +221,85 @@ export async function generateMetadata({ params }: { params: Promise<{ type: str
 
   if (data) {
     if (type === "work") {
-      title = (data as Work).work_title;
-      image = (data as Work).image_url || image;
+      console.log(`[fetchContent] Resolving work for ID: "${decodedId}"`);
+      const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
+      
+      // 1. Try finding in works table (exact or suffix)
+      const { data: exactMatch } = await supabase.from("works").select("*").eq("id", decodedId).maybeSingle();
+      const { data: suffixMatch } = !exactMatch ? await supabase.from("works").select("*").ilike("id", `%:${spotifyId}`).maybeSingle() : { data: null };
+      
+      const dbWork = exactMatch || suffixMatch;
+
+      // 2. Always try searching album caches for tracks, as they have the most accurate credits
+      // Even if we found it in DB, the DB record might have sparse credits.
+      const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
+        search_id: spotifyId 
+      });
+
+      const parentAlbum = albums && albums.length > 0 ? albums[0] : null;
+      const trackInCache = parentAlbum?.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
+
+      // CASE A: It's a track (either in DB or in Cache)
+      if (trackInCache || dbWork?.work_type === 'track') {
+        const id = trackInCache?.id || dbWork?.id || spotifyId;
+        const enriched = await enrichWorkData({ id });
+        
+        // Track credits construction (Primarily from cache for performers)
+        const artistsFromCache = trackInCache?.artists || [];
+        const trackCredits = artistsFromCache.map((a: any, idx: number) => ({
+          id: a.id,
+          name: a.name,
+          profile_path: null,
+          role: 'artist',
+          artist_order: idx
+        }));
+
+        // Fetch artist profile images in bulk
+        if (trackCredits.length > 0) {
+          const artistIds = trackCredits.map(c => `artist:music:${c.id}`);
+          const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
+          if (dbArtists) {
+            trackCredits.forEach(c => {
+              const match = dbArtists.find(da => da.id.endsWith(c.id));
+              if (match) c.profile_path = match.profile_path;
+            });
+          }
+        }
+
+        return {
+          data: {
+            id: id,
+            work_title: trackInCache?.name || dbWork?.work_title || decodedId,
+            work_type: 'track',
+            image_url: parentAlbum?.image_url || dbWork?.image_url,
+            artist_name: artistsFromCache.map((a: any) => a.name).join(', ') || dbWork?.artist_name || parentAlbum?.artist_name,
+            work_year: parentAlbum?.work_year || dbWork?.work_year,
+            genres: parentAlbum?.genres || dbWork?.genres,
+            parent_album_cache: parentAlbum ? {
+              id: parentAlbum.id,
+              title: parentAlbum.work_title,
+              poster_path: parentAlbum.image_url,
+              artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name
+            } : dbWork?.parent_album_cache,
+            rating_avg: enriched.rating_avg || 0,
+            rating_count: enriched.rating_count || 0,
+            credits: trackCredits.length > 0 ? trackCredits : enriched.credits,
+            biography: null // Never show album biography on a track page
+          } as any,
+          error: null
+        };
+      }
+
+      // CASE B: It's not a track (Album, Movie, TV, etc.)
+      if (dbWork) {
+        console.log(`[fetchContent] Found exact or suffix match for non-track: ${dbWork.id}`);
+        const enriched = await enrichWorkData(dbWork);
+        return { data: enriched, error: null };
+      }
+
+      // Failed to resolve
+      console.error(`[fetchContent] All resolution failed for "${decodedId}"`);
+      return { data: null, error: "Not Found" };
     } else if (type === "post") {
       title = `${(data as Post).profiles?.username || "TASH 유저"}님의 기록`;
       description = (data as Post).content;
