@@ -1,3 +1,4 @@
+/* AGENT_VER_2.1_UNIFIED */
 'use client';
 
 import React from 'react';
@@ -64,7 +65,7 @@ function MovieLayout({ data }: { data: Work }) {
       </div>
 
       {/* Overview */}
-      {data.biography && (
+      {data.biography && data.work_type !== "track" && (
         <div className="px-5 mb-8">
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
@@ -134,7 +135,7 @@ function AlbumLayout({ data }: { data: Work }) {
       </div>
 
       {/* Biography */}
-      {data.biography && (
+      {data.biography && data.work_type !== "track" && (
         <div className="px-5 mb-8">
           <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
@@ -239,7 +240,7 @@ function TrackLayout({ data }: { data: Work }) {
       </div>
 
       {/* Biography */}
-      {data.biography && (
+      {data.biography && data.work_type !== "track" && (
         <div className="px-5 mb-8">
           <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
@@ -317,7 +318,7 @@ function BookLayout({ data }: { data: Work }) {
       </div>
 
       {/* Biography / Description */}
-      {data.biography && (
+      {data.biography && data.work_type !== "track" && (
         <div className="px-5 mb-8">
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap font-normal tracking-[-0.05em]">
             {data.biography}
