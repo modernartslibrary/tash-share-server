@@ -325,6 +325,30 @@ function BookLayout({ data }: { data: Work }) {
           </p>
         </div>
       )}
+
+      {/* Credits */}
+      {data.credits && data.credits.length > 0 && (
+        <div className="px-5 mb-12">
+          <h3 className="text-[18px] font-bold text-black mb-4">만든 사람들</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
+            {data.credits.map((credit) => (
+              <div key={credit.id} className="flex items-center gap-2">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                  <img
+                    src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
+                    className="w-full h-full object-cover"
+                    alt={credit.name}
+                  />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[14px] text-black truncate">{credit.name}</span>
+                  <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
