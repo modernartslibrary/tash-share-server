@@ -103,7 +103,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         const album = albums[0];
         const track = album.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
         if (track) {
-          console.log();
+          console.log(`[fetchContent] Success! Resolved via album "${album.work_title}" cache.`);
           
           const enrichedTrack = await enrichWorkData({ id: track.id });
           
@@ -118,7 +118,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
           // Try to fetch artist profile images in bulk from the database
           if (trackCredits.length > 0) {
-            const artistIds = trackCredits.map(c => );
+            const artistIds = trackCredits.map(c => `artist:music:${c.id}`);
             const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
             if (dbArtists) {
               trackCredits.forEach(c => {
