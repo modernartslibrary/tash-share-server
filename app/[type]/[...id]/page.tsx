@@ -67,103 +67,122 @@ async function enrichWorkData(workData: any): Promise<Work> {
 
 async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
   const decodedId = decodeURIComponent(id).normalize('NFC');
-  const hex = Buffer.from(decodedId).toString('hex');
-  console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId} (hex: ${hex})`);
+  console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId}`);
   
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { data: null, error: "Config Missing" };
-    if (type === "work") {
-      console.log(`[fetchContent] Resolving work for ID: "${decodedId}"`);
-      const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
+    
+    // Support both 'work' and specific type prefixes
+    const workTypes = ["work", "movie", "tv", "track", "album", "book"];
+    
+    if (workTypes.includes(type)) {
+      console.log(`[fetchContent] Resolving ${type} for ID: "${decodedId}"`);
+      const suffixId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
       
-      // 1. Try finding in works table (exact or suffix)
-      const { data: exactMatch } = await supabase.from("works").select("*").eq("id", decodedId).maybeSingle();
-      const { data: suffixMatch } = !exactMatch ? await supabase.from("works").select("*").ilike("id", `%:${spotifyId}`).maybeSingle() : { data: null };
+      // 1. Try finding in works table (exact match first)
+      const { data: exactMatch } = await supabase
+        .from("works")
+        .select("*")
+        .eq("id", decodedId)
+        .maybeSingle();
       
-      const dbWork = exactMatch || suffixMatch;
-
-      // 2. Always try searching album caches for tracks, as they have the most accurate credits
-      // Even if we found it in DB, the DB record might have sparse credits.
-      const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
-        search_id: spotifyId 
-      });
-
-      const parentAlbum = albums && albums.length > 0 ? albums[0] : null;
-      const trackInCache = parentAlbum?.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
-
-      // CASE A: It's a track (either in DB or in Cache)
-      if (trackInCache || dbWork?.work_type === 'track') {
-        const id = trackInCache?.id || dbWork?.id || spotifyId;
-        const enriched = await enrichWorkData({ id });
-        
-        // Track credits construction (Primarily from cache for performers)
-        const artistsFromCache = trackInCache?.artists || [];
-        const trackCredits = artistsFromCache.map((a: any, idx: number) => ({
-          id: a.id,
-          name: a.name,
-          profile_path: null,
-          role: 'artist',
-          artist_order: idx
-        }));
-
-        // Fetch artist profile images in bulk
-        if (trackCredits.length > 0) {
-          // Search for both prefixed and non-prefixed IDs for maximum compatibility
-          const pureIds = trackCredits.map((c: any) => c.id);
-          const prefixedIds = pureIds.map(id => `artist:music:${id}`);
-          const searchIds = [...new Set([...pureIds, ...prefixedIds])];
-          
-          const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', searchIds);
-          
-          if (dbArtists) {
-            trackCredits.forEach((c: any) => {
-              // Exact match or suffix match
-              const match = dbArtists.find(da => 
-                da.id === c.id || 
-                da.id === `artist:music:${c.id}` || 
-                da.id.endsWith(`:${c.id}`)
-              );
-              if (match && match.profile_path) {
-                c.profile_path = match.profile_path;
-              }
-            });
-          }
+      // 2. Try finding by suffix if no exact match (important for search result links)
+      let suffixMatch = null;
+      if (!exactMatch) {
+        const { data: suffixResults } = await supabase
+          .from("works")
+          .select("*")
+          .ilike("id", `%:${suffixId}`)
+          .limit(1);
+        if (suffixResults && suffixResults.length > 0) {
+          suffixMatch = suffixResults[0];
         }
+      }
+      
+      let dbWork = exactMatch || suffixMatch;
 
-        return {
-          data: {
-            id: id,
-            work_title: trackInCache?.name || dbWork?.work_title || decodedId,
-            work_type: 'track',
-            image_url: parentAlbum?.image_url || dbWork?.image_url,
-            artist_name: artistsFromCache.map((a: any) => a.name).join(', ') || dbWork?.artist_name || parentAlbum?.artist_name,
-            work_year: parentAlbum?.work_year || dbWork?.work_year,
-            genres: parentAlbum?.genres || dbWork?.genres,
-            parent_album_cache: parentAlbum ? {
-              id: parentAlbum.id,
-              title: parentAlbum.work_title,
-              poster_path: parentAlbum.image_url,
-              artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name
-            } : dbWork?.parent_album_cache,
-            rating_avg: enriched.rating_avg || 0,
-            rating_count: enriched.rating_count || 0,
-            credits: trackCredits.length > 0 ? trackCredits : enriched.credits,
-            biography: null // Never show album biography on a track page
-          } as any,
-          error: null
-        };
+      // 3. Special handling for tracks (search in album caches)
+      const looksLikeTrack = type === 'track' || dbWork?.work_type === 'track' || (!dbWork && type === 'work');
+      
+      if (looksLikeTrack) {
+        const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
+          search_id: suffixId 
+        });
+
+        const parentAlbum = albums && albums.length > 0 ? albums[0] : null;
+        const trackInCache = parentAlbum?.tracks_cache?.find((t: any) => 
+          t.id === suffixId || t.id?.endsWith(':' + suffixId)
+        );
+
+        if (trackInCache || dbWork?.work_type === 'track') {
+          const resolvedId = trackInCache?.id || dbWork?.id || decodedId;
+          const enriched = await enrichWorkData({ id: resolvedId });
+          
+          const artistsFromCache = trackInCache?.artists || [];
+          const trackCredits = artistsFromCache.map((a: any, idx: number) => ({
+            id: a.id,
+            name: a.name,
+            profile_path: null,
+            role: 'artist',
+            artist_order: idx
+          }));
+
+          if (trackCredits.length > 0) {
+            const pureIds = trackCredits.map((c: any) => c.id);
+            const prefixedIds = pureIds.map((pid: string) => `artist:music:${pid}`);
+            const searchIds = [...new Set([...pureIds, ...prefixedIds])];
+            
+            const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', searchIds);
+            
+            if (dbArtists) {
+              trackCredits.forEach((c: any) => {
+                const match = dbArtists.find(da => 
+                  da.id === c.id || 
+                  da.id === `artist:music:${c.id}` || 
+                  da.id.endsWith(`:${c.id}`)
+                );
+                if (match && match.profile_path) {
+                  c.profile_path = match.profile_path;
+                }
+              });
+            }
+          }
+
+          return {
+            data: {
+              id: resolvedId,
+              work_title: trackInCache?.name || dbWork?.work_title || decodedId,
+              work_type: 'track',
+              image_url: parentAlbum?.image_url || dbWork?.image_url,
+              artist_name: artistsFromCache.map((a: any) => a.name).join(', ') || dbWork?.artist_name || parentAlbum?.artist_name,
+              work_year: parentAlbum?.work_year || dbWork?.work_year,
+              genres: parentAlbum?.genres || dbWork?.genres,
+              parent_album_cache: parentAlbum ? {
+                id: parentAlbum.id,
+                title: parentAlbum.work_title,
+                poster_path: parentAlbum.image_url,
+                artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name
+              } : dbWork?.parent_album_cache,
+              rating_avg: enriched.rating_avg || 0,
+              rating_count: enriched.rating_count || 0,
+              credits: trackCredits.length > 0 ? trackCredits : enriched.credits,
+              biography: null
+            } as any,
+            error: null
+          };
+        }
       }
 
-      // CASE B: It's not a track (Album, Movie, TV, etc.)
+      // 4. Return DB work if resolved
       if (dbWork) {
-        console.log(`[fetchContent] Found exact or suffix match for non-track: ${dbWork.id}`);
+        console.log(`[fetchContent] Resolved to DB work: ${dbWork.id}`);
         const enriched = await enrichWorkData(dbWork);
         return { data: enriched, error: null };
       }
 
-      // Failed to resolve
-      console.error(`[fetchContent] All resolution failed for "${decodedId}"`);
+      console.error(`[fetchContent] No DB match found for ${type}/${decodedId}`);
       return { data: null, error: "Not Found" };
+      
     } else if (type === "post") {
       const { data, error } = await supabase.from("posts").select("*, profiles(*), works(*)").eq("id", decodedId).single();
       return { data, error: error?.message || null };
@@ -232,7 +251,8 @@ export async function generateMetadata({ params }: { params: Promise<{ type: str
   let image = "https://tash.kr/logo.png";
 
   if (data) {
-    if (type === "work") {
+    const workTypes = ["work", "movie", "tv", "track", "album", "book"];
+    if (workTypes.includes(type)) {
       const work = data as Work;
       title = `${work.work_title} - ${work.artist_name}`;
       description = work.biography || `${work.artist_name}의 ${work.work_type === 'track' ? '곡' : '작품'} '${work.work_title}'`;
@@ -297,7 +317,7 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
       )}
 
       <main className={`${type === 'profile' ? 'pt-0' : 'pt-14'} px-0 max-w-2xl mx-auto`}>
-        {type === 'work' && <WorkView data={data as Work} />}
+        {["work", "movie", "tv", "track", "album", "book"].includes(type) && <WorkView data={data as Work} />}
         {type === 'post' && <PostLayout data={data as Post} />}
         {type === 'profile' && <ProfileView data={data as Profile} />}
         {type === 'artist' && <ArtistLayout data={data as Artist} />}

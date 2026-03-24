@@ -35,13 +35,27 @@ export default function AppActionButton({ type, id }: { type: string, id: string
     }, 2500);
   };
 
+  const getButtonLabel = () => {
+    switch(type) {
+      case 'movie': return '앱에서 영화 정보 보기';
+      case 'tv': return '앱에서 TV 프로그램 보기';
+      case 'track': return '앱에서 곡 정보 보기';
+      case 'album': return '앱에서 앨범 정보 보기';
+      case 'book': return '앱에서 도서 정보 보기';
+      case 'profile': return 'TASH 프로필 보기';
+      case 'post': return '기록 상세보기';
+      case 'list': return '리스트 전체 보기';
+      default: return 'TASH 앱에서 열기';
+    }
+  };
+
   return (
     <div className="fixed bottom-10 left-0 right-0 p-5 flex justify-center z-50 pointer-events-none">
       <button
         onClick={handleOpenApp}
         className="w-full max-w-[420px] bg-black text-white h-[64px] rounded-full text-[17px] font-black shadow-2xl active:scale-95 transition-all pointer-events-auto"
       >
-        앱에서 열기
+        {getButtonLabel()}
       </button>
     </div>
   );
