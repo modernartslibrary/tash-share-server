@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
 import ProfileView from "../../components/ProfileView";
+import WorkView from "../../components/WorkView";
 import AppActionButton from "../../components/AppActionButton";
 import Link from "next/link";
-import { Work, Post, List, Profile, Artist, TASHData } from "../../types";
+import { Work, Post, List, Profile, Artist, TASHData, Credit } from "../../types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,18 +15,83 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
-  const decodedId = decodeURIComponent(id);
+  const decodedId = decodeURIComponent(id).normalize('NFC');
+  const hex = Buffer.from(decodedId).toString('hex');
+  console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId} (hex: ${hex})`);
   
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { data: null, error: "Config Missing" };
-
-    let query;
     if (type === "work") {
-      query = supabase.from("works").select("*").eq("id", decodedId);
+      let query = supabase.from("works").select("*");
+      
+      // If ID is a full TASH ID (has colons), match exactly.
+      // Otherwise, try matching as a suffix (for Spotify IDs from tracks_cache)
+      if (decodedId.includes(':')) {
+        query = query.eq("id", decodedId);
+      } else {
+        query = query.or(`id.eq.${decodedId},id.ilike.%:${decodedId}`);
+      }
+
+      const { data: workData, error: workError } = await query.single();
+      if (workError) {
+        console.error(`[fetchContent] workError for ${decodedId}:`, workError);
+        return { data: null, error: workError.message };
+      }
+
+      // Fetch Ratings and Count
+      const { data: postsData } = await supabase
+        .from("posts")
+        .select("rating")
+        .eq("work_id", workData.id)
+        .not("rating", "is", null);
+
+      let rating_avg = 0;
+      let rating_count = 0;
+      if (postsData && postsData.length > 0) {
+        rating_count = postsData.length;
+        const total = postsData.reduce((acc, p) => acc + (p.rating || 0), 0);
+        rating_avg = total / rating_count;
+      }
+
+      // Fetch Credits
+      const { data: creditsData } = await supabase
+        .from("work_artist")
+        .select(`
+          role,
+          character_name,
+          artist_order,
+          artists (
+            id,
+            name,
+            profile_path
+          )
+        `)
+        .eq("work_id", workData.id)
+        .order("artist_order", { ascending: true })
+        .limit(20);
+
+      const credits: Credit[] = (creditsData || []).map((c: any) => ({
+        id: c.artists.id,
+        name: c.artists.name,
+        profile_path: c.artists.profile_path,
+        role: c.role,
+        character_name: c.character_name
+      }));
+
+      return {
+        data: {
+          ...workData,
+          rating_avg,
+          rating_count,
+          credits
+        } as Work,
+        error: null
+      };
     } else if (type === "post") {
-      query = supabase.from("posts").select("*, profiles(*), works(*)").eq("id", decodedId);
+      const { data, error } = await supabase.from("posts").select("*, profiles(*), works(*)").eq("id", decodedId).single();
+      return { data, error: error?.message || null };
     } else if (type === "profile") {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedId);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedId);
       
       let profileRes;
       if (isUUID) {
@@ -55,9 +121,9 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       return {
         data: {
           ...profileRes.data,
-          followers_count: profileRes.data.followers_count || 0,
-          following_count: profileRes.data.following_count || 0,
-          works_count: profileRes.data.works_count || 0,
+          followers_count: results[0].count || 0,
+          following_count: results[1].count || 0,
+          works_count: results[2].count || 0,
           initial_posts: postsRes.data || [],
           initial_lists: listsRes.data || [],
           initial_archives: archivesRes.data || []
@@ -65,27 +131,24 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         error: null
       };
     } else if (type === "artist") {
-      query = supabase.from("artists").select("*").eq("id", decodedId);
+      const { data, error } = await supabase.from("artists").select("*").eq("id", decodedId).single();
+      return { data, error: error?.message || null };
     } else if (type === "list") {
-      query = supabase.from("lists").select("*, profiles(*)").eq("id", decodedId);
+      const { data, error } = await supabase.from("lists").select("*, profiles(*)").eq("id", decodedId).single();
+      return { data, error: error?.message || null };
     } else {
       return { data: null, error: `Invalid Type: ${type}` };
     }
-    
-    if (query) {
-      const { data, error } = await query.single();
-      return { data, error: error?.message || null };
-    }
-    return { data: null, error: "Empty Query" };
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { data: null, error: errorMessage };
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ type: string; id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ type: string; id: string | string[] }> }): Promise<Metadata> {
   const { type, id } = await params;
-  const { data } = await fetchContent(type, id);
+  const resolvedId = Array.isArray(id) ? id.join('/') : id;
+  const { data } = await fetchContent(type, resolvedId);
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
@@ -124,9 +187,11 @@ export async function generateMetadata({ params }: { params: Promise<{ type: str
   };
 }
 
-export default async function SharePage({ params }: { params: Promise<{ type: string; id: string }> }) {
-  const { type, id } = await params;
-  const { data } = await fetchContent(type, id);
+export default async function SharePage({ params }: { params: Promise<{ type: string; id: string | string[] }> }) {
+  const resolvedParams = await params;
+  const { type, id } = resolvedParams;
+  const resolvedId = Array.isArray(id) ? id.join('/') : id;
+  const { data } = await fetchContent(type, resolvedId);
 
   if (!data) {
     return (
@@ -136,7 +201,6 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-white text-black font-sans pb-24">
       {type !== 'profile' && (
@@ -146,31 +210,14 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
       )}
 
       <main className={`${type === 'profile' ? 'pt-0' : 'pt-14'} px-0 max-w-2xl mx-auto`}>
-        {type === 'work' && <WorkLayout data={data as Work} />}
+        {type === 'work' && <WorkView data={data as Work} />}
         {type === 'post' && <PostLayout data={data as Post} />}
         {type === 'profile' && <ProfileView data={data as Profile} />}
         {type === 'artist' && <ArtistLayout data={data as Artist} />}
         {type === 'list' && <ListLayout data={data as List} />}
       </main>
 
-      {type !== 'profile' && <AppActionButton type={type} id={id} />}
-    </div>
-  );
-}
-
-function WorkLayout({ data }: { data: Work }) {
-  return (
-    <div className="flex flex-col items-center py-8">
-      <div className="w-[73%] aspect-[2/3] mb-8 relative">
-        <img src={data.image_url} className="w-full h-full object-cover border border-gray-100" alt={data.work_title || "work"} />
-      </div>
-      <h2 className="text-2xl font-black mb-1 text-center px-4 leading-tight">{data.work_title}</h2>
-      <p className="text-gray-500 font-semibold mb-8">{data.display_artist_name || data.artist_name || "TASH"}</p>
-      {data.biography && (
-        <div className="w-full text-left bg-gray-50/70 p-7 rounded-[28px] text-gray-700 leading-relaxed tracking-tight whitespace-pre-wrap text-[15px]">
-          {data.biography}
-        </div>
-      )}
+      {type !== 'profile' && <AppActionButton type={type} id={resolvedId} />}
     </div>
   );
 }
