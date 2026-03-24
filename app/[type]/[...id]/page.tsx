@@ -85,9 +85,11 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     } else if (type === "book") {
       functionName = "naver-search-books";
       body = { query: id }; // ISBN is the id in our links
+    } else if (type === "track" || type === "album") {
+      functionName = "spotify-search-works";
+      body = { query: id, types: [type], limit: 1 };
     } else {
-      // Generic fallback for track, album, or others if they don't have dedicated public functions
-      // This will ideally be called with a Service Role Key to bypass auth
+      // Generic fallback for others
       functionName = "ensure-work-exists";
       body = { work_id: id, work_type: type };
     }
@@ -128,6 +130,8 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     let workData = data;
     if (type === "book" && data.items && data.items.length > 0) {
       workData = data.items[0];
+    } else if ((type === "track" || type === "album") && Array.isArray(data) && data.length > 0) {
+      workData = data[0];
     } else if (data.work) {
       // handle ensure-work-exists output format
       workData = { 
@@ -153,6 +157,9 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
         }
         if (Array.isArray(c.writer)) {
           creditsArray.push(...c.writer.map((p: any) => ({ ...p, role: 'writer' })));
+        }
+        if (Array.isArray(c.artist)) {
+          creditsArray.push(...c.artist.map((p: any) => ({ ...p, role: 'artist' })));
         }
       }
     } else if (Array.isArray(workData.credits)) {
