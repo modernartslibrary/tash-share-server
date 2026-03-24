@@ -106,7 +106,27 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
           console.log();
           
           const enrichedTrack = await enrichWorkData({ id: track.id });
-          const enrichedAlbum = await enrichWorkData(album);
+          
+          // Construct track-specific credits from the artists array in the cache
+          const trackCredits = (track.artists || []).map((a: any, idx: number) => ({
+            id: a.id,
+            name: a.name,
+            profile_path: null,
+            role: 'artist',
+            artist_order: idx
+          }));
+
+          // Try to fetch artist profile images in bulk from the database
+          if (trackCredits.length > 0) {
+            const artistIds = trackCredits.map(c => );
+            const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
+            if (dbArtists) {
+              trackCredits.forEach(c => {
+                const match = dbArtists.find(da => da.id.endsWith(c.id));
+                if (match) c.profile_path = match.profile_path;
+              });
+            }
+          }
 
           return {
             data: {
@@ -125,8 +145,8 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
               },
               rating_avg: enrichedTrack.rating_avg || 0,
               rating_count: enrichedTrack.rating_count || 0,
-              credits: enrichedAlbum.credits || [],
-              biography: album.biography
+              credits: trackCredits,
+              biography: null // Never show album biography on a track page
             } as any,
             error: null
           };
