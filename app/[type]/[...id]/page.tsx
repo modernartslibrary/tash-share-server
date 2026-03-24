@@ -140,18 +140,30 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
 
     if (!workData) return null;
 
+    // Flatten credits if it's an object (TMDB style) into an array (TASH style)
+    let creditsArray: any[] = [];
+    if (workData.credits && !Array.isArray(workData.credits)) {
+      const c = workData.credits;
+      // Combine director, cast, etc. into a single list
+      if (c.director) creditsArray.push(...c.director);
+      if (c.cast) creditsArray.push(...c.cast);
+      if (c.writer) creditsArray.push(...c.writer);
+    } else if (Array.isArray(workData.credits)) {
+      creditsArray = workData.credits;
+    }
+
     return {
       id: workData.id || id,
       work_title: workData.work_title || workData.title || '',
       work_type: workData.work_type || type,
       image_url: workData.image_url || workData.poster_path || '',
-      artist_name: workData.artist_name || '',
+      artist_name: workData.artist_name || workData.director_name || '',
       work_year: workData.work_year || (workData.release_date ? parseInt(workData.release_date.substring(0, 4)) : null),
       genres: workData.genres || [],
       biography: workData.biography || workData.overview || '',
       rating_avg: workData.rating_avg || 0,
       rating_count: workData.rating_count || 0,
-      credits: workData.credits || [],
+      credits: creditsArray,
       parent_album_cache: workData.parent_album || workData.parent_album_cache,
       tracks_cache: workData.tracks_cache || []
     } as Work;
