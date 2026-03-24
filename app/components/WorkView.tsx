@@ -152,7 +152,7 @@ function AlbumLayout({ data }: { data: Work }) {
             {data.tracks_cache.map((track) => (
               <Link 
                 key={track.id} 
-                href={`/work/${track.id}`}
+                href={`/work/${track.id.includes(':') ? track.id.split(':').pop() : track.id}`}
                 className="flex items-start py-2 gap-2"
               >
                 <div className="flex items-start gap-2 flex-1 min-w-0">

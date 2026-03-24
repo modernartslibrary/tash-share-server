@@ -98,12 +98,12 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       const { data: albums } = await supabase
         .from("works")
         .select("*")
-        .contains('tracks_cache', [{ id: spotifyId }])
+        .filter('tracks_cache', 'like', `%${spotifyId}%`)
         .limit(1);
 
       if (albums && albums.length > 0) {
         const album = albums[0];
-        const track = album.tracks_cache?.find((t: any) => t.id === spotifyId);
+        const track = album.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
         if (track) {
           console.log(`[fetchContent] Success! Resolved via album "${album.work_title}" cache.`);
           return {
