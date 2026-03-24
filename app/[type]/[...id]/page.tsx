@@ -95,11 +95,9 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
       // Step 3: Fallback - Search in album caches across the whole database
       console.log(`[fetchContent] No indexed work found. Searching album caches for "${spotifyId}"`);
-      const { data: albums } = await supabase
-        .from("works")
-        .select("*")
-        .filter('tracks_cache', 'like', `%${spotifyId}%`)
-        .limit(1);
+      const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
+        search_id: spotifyId 
+      });
 
       if (albums && albums.length > 0) {
         const album = albums[0];
