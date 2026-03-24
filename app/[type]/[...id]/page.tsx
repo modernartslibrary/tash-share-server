@@ -87,7 +87,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       body = { query: id }; // ISBN is the id in our links
     } else if (type === "track" || type === "album") {
       functionName = "spotify-search-works";
-      body = { query: id, types: [type], limit: 1 };
+      body = { query: id, types: [type], limit: 10 };
     } else {
       // Generic fallback for others
       functionName = "ensure-work-exists";
@@ -131,7 +131,8 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     if (type === "book" && data.items && data.items.length > 0) {
       workData = data.items[0];
     } else if ((type === "track" || type === "album") && Array.isArray(data) && data.length > 0) {
-      workData = data[0];
+      // Find exact match by ID among search results
+      workData = data.find((v: any) => v.id === id) || data[0];
     } else if (data.work) {
       // handle ensure-work-exists output format
       workData = { 
