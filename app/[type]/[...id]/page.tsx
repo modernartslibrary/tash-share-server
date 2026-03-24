@@ -103,7 +103,11 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         const album = albums[0];
         const track = album.tracks_cache?.find((t: any) => t.id === spotifyId || t.id?.endsWith(':' + spotifyId));
         if (track) {
-          console.log(`[fetchContent] Success! Resolved via album "${album.work_title}" cache.`);
+          console.log();
+          
+          const enrichedTrack = await enrichWorkData({ id: track.id });
+          const enrichedAlbum = await enrichWorkData(album);
+
           return {
             data: {
               id: track.id,
@@ -119,9 +123,10 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
                 poster_path: album.image_url,
                 artist_names_display: album.artist_name || album.display_artist_name
               },
-              rating_avg: 0,
-              rating_count: 0,
-              credits: []
+              rating_avg: enrichedTrack.rating_avg || 0,
+              rating_count: enrichedTrack.rating_count || 0,
+              credits: enrichedAlbum.credits || [],
+              biography: album.biography
             } as any,
             error: null
           };
