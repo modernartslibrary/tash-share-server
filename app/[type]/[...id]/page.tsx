@@ -163,6 +163,15 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
           creditsArray.push(...c.artist.map((p: any) => ({ ...p, role: 'artist' })));
         }
       }
+    } else if (type === "book" && workData.author) {
+      // Add author to credits for books
+      const authorName = workData.author.replace(/,\s*$/, '').trim();
+      creditsArray.push({
+        id: `author:${authorName}`,
+        name: authorName,
+        role: 'author',
+        profile_path: null
+      });
     } else if (Array.isArray(workData.credits)) {
       creditsArray = workData.credits;
     }
@@ -172,7 +181,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       work_title: workData.work_title || workData.title || '',
       work_type: workData.work_type || type,
       image_url: workData.image_url || workData.poster_path || workData.image || '',
-      artist_name: workData.artist_name || workData.artist_names_display || workData.author || '',
+      artist_name: (workData.artist_name || workData.artist_names_display || workData.author || '').replace(/,\s*$/, '').trim(),
       release_date: workData.release_date || workData.year || workData.pubdate || '',
       description: workData.description || workData.overview || '',
       work_year: workData.work_year || (workData.release_date ? parseInt(workData.release_date.substring(0, 4)) : null),
