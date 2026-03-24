@@ -56,7 +56,7 @@ function MovieLayout({ data }: { data: Work }) {
 
         <div className="flex flex-col gap-0 mt-2">
           <p className="text-[12px] text-gray-400 font-medium tracking-tight">
-            {getCategoryLabel(data.work_type)} · {data.artist_name}, {data.work_year}
+            {getCategoryLabel(data.work_type)} · {data.artist_name}{data.work_year ? `, ${data.work_year}` : ''}
           </p>
           <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
             {data.production_countries?.join(', ') || '한국'} · {data.genres?.join(', ')} · {formatRuntime(data.runtime_minutes)}
@@ -126,7 +126,7 @@ function AlbumLayout({ data }: { data: Work }) {
         </div>
         <div className="flex flex-col">
           <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none mb-1">
-            앨범 · {data.display_artist_name || data.artist_name} · {data.work_year}
+            앨범 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
           <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
             {data.genres?.join(', ')}
@@ -234,7 +234,7 @@ function TrackLayout({ data }: { data: Work }) {
         </div>
         <div className="flex flex-col">
           <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
-            곡 · {data.display_artist_name || data.artist_name} · {data.work_year}
+            곡 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
         </div>
       </div>

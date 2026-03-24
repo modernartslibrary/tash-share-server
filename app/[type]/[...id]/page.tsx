@@ -176,15 +176,23 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       creditsArray = workData.credits;
     }
 
+    // Robust year extraction
+    let extractedYear: number | null = null;
+    const dateStr = workData.release_date || workData.pubdate || workData.year || '';
+    if (dateStr) {
+      const yearMatch = dateStr.toString().match(/\d{4}/);
+      if (yearMatch) extractedYear = parseInt(yearMatch[0]);
+    }
+
     return {
       id: workData.id || id,
       work_title: workData.work_title || workData.title || '',
       work_type: workData.work_type || type,
       image_url: workData.image_url || workData.poster_path || workData.image || '',
       artist_name: (workData.artist_name || workData.artist_names_display || workData.author || '').replace(/,\s*$/, '').trim(),
-      release_date: workData.release_date || workData.year || workData.pubdate || '',
+      release_date: dateStr,
       description: workData.description || workData.overview || '',
-      work_year: workData.work_year || (workData.release_date ? parseInt(workData.release_date.substring(0, 4)) : null),
+      work_year: workData.work_year || extractedYear,
       genres: workData.genres || [],
       biography: workData.biography || workData.overview || '',
       rating_avg: workData.rating_avg || 0,
@@ -470,6 +478,19 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
   );
 }
 
+// Helper for PostLayout
+function getCategoryLabel(type: string | undefined) {
+  if (!type) return '작품';
+  switch (type.toLowerCase()) {
+    case 'movie': return '영화';
+    case 'tv': return 'TV 프로그램';
+    case 'album': return '앨범';
+    case 'track': return '곡';
+    case 'book': return '책';
+    default: return '작품';
+  }
+}
+
 function PostLayout({ data }: { data: Post }) {
   return (
     <div className="py-6">
@@ -482,7 +503,9 @@ function PostLayout({ data }: { data: Post }) {
         <img src={data.works?.image_url} className="w-14 h-20 object-cover mr-4 border border-gray-200/30" alt="work" />
         <div className="flex flex-col">
           <span className="font-bold text-[15px] line-clamp-1 mb-0.5">{data.works?.work_title}</span>
-          <span className="text-xs text-gray-400 font-medium">{data.works?.artist_name}</span>
+          <p className="text-[12px] text-gray-400 font-medium tracking-tight">
+            {getCategoryLabel(data.works?.work_type)} · {data.works?.artist_name}{data.works?.work_year ? `, ${data.works.work_year}` : ''}
+          </p>
         </div>
       </div>
 
