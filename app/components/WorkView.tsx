@@ -82,7 +82,7 @@ function MovieLayout({ data }: { data: Work }) {
               <div key={credit.id} className="flex items-center gap-2">
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
-                    src={credit.profile_path ? `https://image.tmdb.org/t/p/w200${credit.profile_path}` : "/icons/default_profile.jpg"}
+                    src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover"
                     alt={credit.name}
                   />

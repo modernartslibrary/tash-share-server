@@ -65,6 +65,91 @@ async function enrichWorkData(workData: any): Promise<Work> {
   };
 }
 
+async function fetchFallbackMetadata(type: string, id: string): Promise<Work | null> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+
+    let functionName = "";
+    let body = {};
+    
+    // Choose appropriate Edge Function based on type
+    if (type === "movie") {
+      functionName = "tmdb-get-movie-details";
+      body = { movieId: id };
+    } else if (type === "tv") {
+      functionName = "tmdb-get-tv-details";
+      body = { seriesId: id };
+    } else if (type === "book") {
+      functionName = "naver-search-books";
+      body = { query: id }; // ISBN is the id in our links
+    } else {
+      // Generic fallback for track, album, or others if they don't have dedicated public functions
+      // This will ideally be called with a Service Role Key to bypass auth
+      functionName = "ensure-work-exists";
+      body = { work_id: id, work_type: type };
+    }
+    
+    if (!functionName) return null;
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const authHeader = serviceRoleKey ? `Bearer ${serviceRoleKey}` : `Bearer ${supabaseAnonKey}`;
+
+    console.log(`[fetchFallbackMetadata] Triggering fallback for ${type}/${id} via ${functionName}`);
+    const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      console.warn(`[fetchFallbackMetadata] Fallback failed with status: ${response.status}`);
+      return null;
+    }
+
+    const { data } = await response.json();
+    if (!data) return null;
+
+    // Normalize data from different Edge Functions
+    let workData = data;
+    if (type === "book" && data.items && data.items.length > 0) {
+      workData = data.items[0];
+    } else if (data.work) {
+      // handle ensure-work-exists output format
+      workData = { 
+        ...data.work, 
+        credits: data.credits || [],
+        tracks_cache: data.tracks || []
+      };
+    }
+
+    if (!workData) return null;
+
+    return {
+      id: workData.id || id,
+      work_title: workData.work_title || workData.title || '',
+      work_type: workData.work_type || type,
+      image_url: workData.image_url || workData.poster_path || '',
+      artist_name: workData.artist_name || '',
+      work_year: workData.work_year || (workData.release_date ? parseInt(workData.release_date.substring(0, 4)) : null),
+      genres: workData.genres || [],
+      biography: workData.biography || workData.overview || '',
+      rating_avg: workData.rating_avg || 0,
+      rating_count: workData.rating_count || 0,
+      credits: workData.credits || [],
+      parent_album_cache: workData.parent_album || workData.parent_album_cache,
+      tracks_cache: workData.tracks_cache || []
+    } as Work;
+  } catch (err) {
+    console.error(`[fetchFallbackMetadata] Error during fallback:`, err);
+    return null;
+  }
+}
+
 async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
   const decodedId = decodeURIComponent(id).normalize('NFC');
   console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId}`);
@@ -180,7 +265,14 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         return { data: enriched, error: null };
       }
 
-      console.error(`[fetchContent] No DB match found for ${type}/${decodedId}`);
+      // 5. Fallback: Resolve via Edge Functions for uncached works
+      const fallbackData = await fetchFallbackMetadata(type, suffixId);
+      if (fallbackData) {
+        console.log(`[fetchContent] Resolved via Fallback API: ${suffixId}`);
+        return { data: fallbackData, error: null };
+      }
+
+      console.error(`[fetchContent] No DB or API match found for ${type}/${decodedId}`);
       return { data: null, error: "Not Found" };
       
     } else if (type === "post") {
