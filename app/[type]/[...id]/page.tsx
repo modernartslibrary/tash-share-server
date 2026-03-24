@@ -22,56 +22,59 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { data: null, error: "Config Missing" };
     if (type === "work") {
+      // 1. Try finding the work directly (Full ID or Suffix matching for Spotify IDs)
       let query = supabase.from("works").select("*");
-      
-      // If ID is a full TASH ID (has colons), match exactly.
-      // Otherwise, try matching as a suffix (for Spotify IDs from tracks_cache)
       if (decodedId.includes(':')) {
         query = query.eq("id", decodedId);
       } else {
         query = query.or(`id.eq.${decodedId},id.ilike.%:${decodedId}`);
       }
 
-      const { data: workData, error: workError } = await query.maybeSingle();
+      let { data: workData, error: workError } = await query.maybeSingle();
       
+      // 2. If not found, and it looks like a Spotify ID (or contains one), try searching for an album that owns it
       if (!workData) {
-        // Fallback: If not found as an independent work, check if it exists in an album's tracks_cache
-        // This makes navigation work for tracks that haven't been independently archived yet.
+        // Extract the potential Spotify ID if it's a TASH ID (e.g., track:slug:spotify_id)
+        const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() : decodedId;
+        
+        console.log(`[fetchContent] No direct work found. Trying fallback for spotifyId: ${spotifyId}`);
+        
+        // Search for an album that has this spotifyId in its tracks_cache
         const { data: albumData } = await supabase
           .from("works")
           .select("*")
-          .contains('tracks_cache', [{ id: decodedId }])
+          .contains('tracks_cache', [{ id: spotifyId }])
           .limit(1)
           .maybeSingle();
 
-        if (albumData) {
-          const track = albumData.tracks_cache.find((t: any) => t.id === decodedId);
+        if (albumData && albumData.tracks_cache) {
+          const track = albumData.tracks_cache.find((t: any) => t.id === spotifyId);
           if (track) {
-            return {
-              data: {
-                id: track.id,
-                work_title: track.name,
-                work_type: 'track',
-                image_url: albumData.image_url,
-                artist_name: track.artists.map((a: any) => a.name).join(', '),
-                work_year: albumData.work_year,
-                genres: albumData.genres,
-                parent_album_cache: {
-                  id: albumData.id,
-                  title: albumData.work_title,
-                  poster_path: albumData.image_url,
-                  artist_names_display: albumData.artist_name || albumData.display_artist_name
-                },
-                rating_avg: 0,
-                rating_count: 0,
-                credits: []
-              } as Work,
-              error: null
-            };
+            console.log(`[fetchContent] Found track ${track.name} in album ${albumData.work_title} cache.`);
+            workData = {
+              id: track.id,
+              work_title: track.name,
+              work_type: 'track',
+              image_url: albumData.image_url,
+              artist_name: track.artists?.map((a: any) => a.name).join(', ') || albumData.artist_name,
+              work_year: albumData.work_year,
+              genres: albumData.genres,
+              parent_album_cache: {
+                id: albumData.id,
+                title: albumData.work_title,
+                poster_path: albumData.image_url,
+                artist_names_display: albumData.display_artist_name || albumData.artist_name
+              },
+              rating_avg: 0,
+              rating_count: 0,
+              credits: []
+            } as any;
           }
         }
+      }
 
-        console.error(`[fetchContent] No work found for ${decodedId}`);
+      if (!workData) {
+        console.error(`[fetchContent] Final fail for ${decodedId}`);
         return { data: null, error: "Not Found" };
       }
       if (workError) {
