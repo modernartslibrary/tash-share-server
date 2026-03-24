@@ -9,10 +9,61 @@ import { Work, Post, List, Profile, Artist, TASHData, Credit } from "../../types
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import { redirect } from "next/navigation";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function enrichWorkData(workData: any): Promise<Work> {
+  // Fetch Ratings and Count
+  const { data: postsData } = await supabase
+    .from("posts")
+    .select("rating")
+    .eq("work_id", workData.id)
+    .not("rating", "is", null);
+
+  let rating_avg = 0;
+  let rating_count = 0;
+  if (postsData && postsData.length > 0) {
+    rating_count = postsData.length;
+    const total = postsData.reduce((acc, p) => acc + (p.rating || 0), 0);
+    rating_avg = total / rating_count;
+  }
+
+  // Fetch Credits
+  const { data: creditsData } = await supabase
+    .from("work_artist")
+    .select(`
+      role,
+      character_name,
+      artist_order,
+      artists (
+        id,
+        name,
+        profile_path
+      )
+    `)
+    .eq("work_id", workData.id)
+    .order("artist_order", { ascending: true })
+    .limit(20);
+
+  const credits: Credit[] = (creditsData || []).map((c: any) => ({
+    id: c.artists.id,
+    name: c.artists.name,
+    profile_path: c.artists.profile_path,
+    role: c.role,
+    character_name: c.character_name
+  }));
+
+  return {
+    ...workData,
+    rating_avg,
+    rating_count,
+    credits
+  };
+}
 
 async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
   const decodedId = decodeURIComponent(id).normalize('NFC');
@@ -24,131 +75,63 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
     if (type === "work") {
       console.log(`[fetchContent] Resolving work for ID: "${decodedId}"`);
       
-      // 1. Try finding the work directly
-      let directQuery = supabase.from("works").select("*");
-      if (decodedId.includes(':')) {
-        directQuery = directQuery.eq("id", decodedId);
-      } else {
-        directQuery = directQuery.or(`id.eq."${decodedId}",id.ilike."%:${decodedId}"`);
+      // Step 1: Try finding the work directly by exact match
+      const { data: exactMatch } = await supabase.from("works").select("*").eq("id", decodedId).maybeSingle();
+      if (exactMatch) {
+         console.log(`[fetchContent] Found exact match: ${exactMatch.id}`);
+         const enriched = await enrichWorkData(exactMatch);
+         return { data: enriched, error: null };
       }
 
-      let { data: workData, error: workError } = await directQuery.maybeSingle();
-      
-      if (workData) {
-        console.log(`[fetchContent] Found direct work match: ${workData.work_title} (${workData.id})`);
+      // Step 2: Try finding by Spotify ID suffix (if it looks like one or contains one)
+      const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
+      console.log(`[fetchContent] Searching for suffix match: "%:${spotifyId}"`);
+      const { data: suffixMatch } = await supabase.from("works").select("*").ilike("id", `%:${spotifyId}`).maybeSingle();
+      if (suffixMatch) {
+        console.log(`[fetchContent] Found via suffix: ${suffixMatch.id}`);
+        const enriched = await enrichWorkData(suffixMatch);
+        return { data: enriched, error: null };
       }
 
-      // 2. Fallback: Search in albums' tracks_cache
-      if (!workData) {
-        // Extract the potential Spotify ID (usually the last part of a TASH ID or the ID itself)
-        const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() : decodedId;
-        
-        console.log(`[fetchContent] Direct match failed. Searching fallback for Spotify ID: "${spotifyId}"`);
-        
-        // Search across all works that have tracks_cache containing this ID
-        // Note: We use .contains on the jsonb column
-        const { data: albumsWithTrack, error: fallbackError } = await supabase
-          .from("works")
-          .select("*")
-          .contains('tracks_cache', [{ id: spotifyId }])
-          .limit(10); // Find a few in case of duplicates
+      // Step 3: Fallback - Search in album caches across the whole database
+      console.log(`[fetchContent] No indexed work found. Searching album caches for "${spotifyId}"`);
+      const { data: albums } = await supabase
+        .from("works")
+        .select("*")
+        .contains('tracks_cache', [{ id: spotifyId }])
+        .limit(1);
 
-        if (fallbackError) {
-          console.error(`[fetchContent] Fallback query error:`, fallbackError);
-        }
-
-        if (albumsWithTrack && albumsWithTrack.length > 0) {
-          console.log(`[fetchContent] Found ${albumsWithTrack.length} potential albums in fallback.`);
-          
-          for (const album of albumsWithTrack) {
-            const track = album.tracks_cache?.find((t: any) => t.id === spotifyId);
-            if (track) {
-              console.log(`[fetchContent] Success! Resolved track "${track.name}" via album "${album.work_title}".`);
-              workData = {
-                id: track.id,
-                work_title: track.name,
-                work_type: 'track',
-                image_url: album.image_url,
-                artist_name: track.artists?.map((a: any) => a.name).join(', ') || album.artist_name,
-                work_year: album.work_year,
-                genres: album.genres,
-                biography: album.biography, // Optional fallback
-                parent_album_cache: {
-                  id: album.id,
-                  title: album.work_title,
-                  poster_path: album.image_url,
-                  artist_names_display: album.artist_name || album.display_artist_name
-                },
-                rating_avg: 0,
-                rating_count: 0,
-                credits: []
-              } as any;
-              break;
-            }
-          }
-        } else {
-          console.log(`[fetchContent] Fallback search returned no albums.`);
+      if (albums && albums.length > 0) {
+        const album = albums[0];
+        const track = album.tracks_cache?.find((t: any) => t.id === spotifyId);
+        if (track) {
+          console.log(`[fetchContent] Success! Resolved via album "${album.work_title}" cache.`);
+          return {
+            data: {
+              id: track.id,
+              work_title: track.name,
+              work_type: 'track',
+              image_url: album.image_url,
+              artist_name: track.artists?.map((a: any) => a.name).join(', ') || album.artist_name,
+              work_year: album.work_year,
+              genres: album.genres,
+              parent_album_cache: {
+                id: album.id,
+                title: album.work_title,
+                poster_path: album.image_url,
+                artist_names_display: album.artist_name || album.display_artist_name
+              },
+              rating_avg: 0,
+              rating_count: 0,
+              credits: []
+            } as any,
+            error: null
+          };
         }
       }
 
-      if (!workData) {
-        console.error(`[fetchContent] ALL resolution failed for ID: "${decodedId}"`);
-        return { data: null, error: "Not Found" };
-      }
-      if (workError) {
-        console.error(`[fetchContent] workError for ${decodedId}:`, workError);
-        return { data: null, error: workError.message };
-      }
-
-      // Fetch Ratings and Count
-      const { data: postsData } = await supabase
-        .from("posts")
-        .select("rating")
-        .eq("work_id", workData.id)
-        .not("rating", "is", null);
-
-      let rating_avg = 0;
-      let rating_count = 0;
-      if (postsData && postsData.length > 0) {
-        rating_count = postsData.length;
-        const total = postsData.reduce((acc, p) => acc + (p.rating || 0), 0);
-        rating_avg = total / rating_count;
-      }
-
-      // Fetch Credits
-      const { data: creditsData } = await supabase
-        .from("work_artist")
-        .select(`
-          role,
-          character_name,
-          artist_order,
-          artists (
-            id,
-            name,
-            profile_path
-          )
-        `)
-        .eq("work_id", workData.id)
-        .order("artist_order", { ascending: true })
-        .limit(20);
-
-      const credits: Credit[] = (creditsData || []).map((c: any) => ({
-        id: c.artists.id,
-        name: c.artists.name,
-        profile_path: c.artists.profile_path,
-        role: c.role,
-        character_name: c.character_name
-      }));
-
-      return {
-        data: {
-          ...workData,
-          rating_avg,
-          rating_count,
-          credits
-        } as Work,
-        error: null
-      };
+      console.error(`[fetchContent] All resolution failed for "${decodedId}"`);
+      return { data: null, error: "Not Found" };
     } else if (type === "post") {
       const { data, error } = await supabase.from("posts").select("*, profiles(*), works(*)").eq("id", decodedId).single();
       return { data, error: error?.message || null };
@@ -255,6 +238,14 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
   const resolvedId = Array.isArray(id) ? id.join('/') : id;
   const { data } = await fetchContent(type, resolvedId);
 
+  // Unify link system: Redirect to canonical TASH ID if we matched a suffix or fallback.
+  if (data && type === 'work' && data.id && data.id !== resolvedId) {
+    if (data.id.endsWith(resolvedId) || resolvedId === data.id.split(':').pop()) {
+       console.log(`[SharePage] Redirecting to canonical ID: ${data.id}`);
+       redirect(`/work/${data.id}`);
+    }
+  }
+ 
   if (!data) {
     return (
       <div className="p-20 text-center flex flex-col items-center justify-center min-h-screen">

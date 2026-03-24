@@ -3611,3 +3611,6 @@ Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allow
 [fetchContent] type: work, id: track:my_old_flame:5yZSSjUOsrp36P5uKdvuj8, decodedId: track:my_old_flame:5yZSSjUOsrp36P5uKdvuj8 (hex: 747261636b3a6d795f6f6c645f666c616d653a35795a53536a554f73727033365035754b6476756a38)
  GET /work/track:my_old_flame:5yZSSjUOsrp36P5uKdvuj8 200 in 204ms (next.js: 5ms, application-code: 199ms)
 ✓ Compiled in 82ms
+✓ Compiled in 54ms
+✓ Compiled in 64ms
+✓ Compiled in 899ms
