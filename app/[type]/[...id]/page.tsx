@@ -108,12 +108,24 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
         // Fetch artist profile images in bulk
         if (trackCredits.length > 0) {
-          const artistIds = trackCredits.map((c: any) => `artist:music:${c.id}`);
-          const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', artistIds);
+          // Search for both prefixed and non-prefixed IDs for maximum compatibility
+          const pureIds = trackCredits.map((c: any) => c.id);
+          const prefixedIds = pureIds.map(id => `artist:music:${id}`);
+          const searchIds = [...new Set([...pureIds, ...prefixedIds])];
+          
+          const { data: dbArtists } = await supabase.from('artists').select('id, profile_path').in('id', searchIds);
+          
           if (dbArtists) {
             trackCredits.forEach((c: any) => {
-              const match = dbArtists.find(da => da.id.endsWith(c.id));
-              if (match) c.profile_path = match.profile_path;
+              // Exact match or suffix match
+              const match = dbArtists.find(da => 
+                da.id === c.id || 
+                da.id === `artist:music:${c.id}` || 
+                da.id.endsWith(`:${c.id}`)
+              );
+              if (match && match.profile_path) {
+                c.profile_path = match.profile_path;
+              }
             });
           }
         }
