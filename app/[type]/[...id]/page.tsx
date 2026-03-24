@@ -5,6 +5,8 @@ import WorkView from "../../components/WorkView";
 import AppActionButton from "../../components/AppActionButton";
 import Link from "next/link";
 import { Work, Post, List, Profile, Artist, TASHData, Credit } from "../../types";
+import { cache } from "react";
+
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -97,14 +99,23 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     const authHeader = serviceRoleKey ? `Bearer ${serviceRoleKey}` : `Bearer ${supabaseAnonKey}`;
 
     console.log(`[fetchFallbackMetadata] Triggering fallback for ${type}/${id} via ${functionName}`);
+    
+    // Add a 8 second timeout to prevent hanging the whole request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
+
 
     if (!response.ok) {
       console.warn(`[fetchFallbackMetadata] Fallback failed with status: ${response.status}`);
@@ -150,7 +161,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
   }
 }
 
-async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
+const fetchContent = cache(async (type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> => {
   const decodedId = decodeURIComponent(id).normalize('NFC');
   console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId}`);
   
@@ -331,7 +342,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { data: null, error: errorMessage };
   }
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ type: string; id: string | string[] }> }): Promise<Metadata> {
   const { type, id } = await params;
