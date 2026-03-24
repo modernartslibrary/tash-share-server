@@ -22,59 +22,77 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { data: null, error: "Config Missing" };
     if (type === "work") {
-      // 1. Try finding the work directly (Full ID or Suffix matching for Spotify IDs)
-      let query = supabase.from("works").select("*");
+      console.log(`[fetchContent] Resolving work for ID: "${decodedId}"`);
+      
+      // 1. Try finding the work directly
+      let directQuery = supabase.from("works").select("*");
       if (decodedId.includes(':')) {
-        query = query.eq("id", decodedId);
+        directQuery = directQuery.eq("id", decodedId);
       } else {
-        query = query.or(`id.eq.${decodedId},id.ilike.%:${decodedId}`);
+        directQuery = directQuery.or(`id.eq."${decodedId}",id.ilike."%:${decodedId}"`);
       }
 
-      let { data: workData, error: workError } = await query.maybeSingle();
+      let { data: workData, error: workError } = await directQuery.maybeSingle();
       
-      // 2. If not found, and it looks like a Spotify ID (or contains one), try searching for an album that owns it
+      if (workData) {
+        console.log(`[fetchContent] Found direct work match: ${workData.work_title} (${workData.id})`);
+      }
+
+      // 2. Fallback: Search in albums' tracks_cache
       if (!workData) {
-        // Extract the potential Spotify ID if it's a TASH ID (e.g., track:slug:spotify_id)
+        // Extract the potential Spotify ID (usually the last part of a TASH ID or the ID itself)
         const spotifyId = decodedId.includes(':') ? decodedId.split(':').pop() : decodedId;
         
-        console.log(`[fetchContent] No direct work found. Trying fallback for spotifyId: ${spotifyId}`);
+        console.log(`[fetchContent] Direct match failed. Searching fallback for Spotify ID: "${spotifyId}"`);
         
-        // Search for an album that has this spotifyId in its tracks_cache
-        const { data: albumData } = await supabase
+        // Search across all works that have tracks_cache containing this ID
+        // Note: We use .contains on the jsonb column
+        const { data: albumsWithTrack, error: fallbackError } = await supabase
           .from("works")
           .select("*")
           .contains('tracks_cache', [{ id: spotifyId }])
-          .limit(1)
-          .maybeSingle();
+          .limit(10); // Find a few in case of duplicates
 
-        if (albumData && albumData.tracks_cache) {
-          const track = albumData.tracks_cache.find((t: any) => t.id === spotifyId);
-          if (track) {
-            console.log(`[fetchContent] Found track ${track.name} in album ${albumData.work_title} cache.`);
-            workData = {
-              id: track.id,
-              work_title: track.name,
-              work_type: 'track',
-              image_url: albumData.image_url,
-              artist_name: track.artists?.map((a: any) => a.name).join(', ') || albumData.artist_name,
-              work_year: albumData.work_year,
-              genres: albumData.genres,
-              parent_album_cache: {
-                id: albumData.id,
-                title: albumData.work_title,
-                poster_path: albumData.image_url,
-                artist_names_display: albumData.display_artist_name || albumData.artist_name
-              },
-              rating_avg: 0,
-              rating_count: 0,
-              credits: []
-            } as any;
+        if (fallbackError) {
+          console.error(`[fetchContent] Fallback query error:`, fallbackError);
+        }
+
+        if (albumsWithTrack && albumsWithTrack.length > 0) {
+          console.log(`[fetchContent] Found ${albumsWithTrack.length} potential albums in fallback.`);
+          
+          for (const album of albumsWithTrack) {
+            const track = album.tracks_cache?.find((t: any) => t.id === spotifyId);
+            if (track) {
+              console.log(`[fetchContent] Success! Resolved track "${track.name}" via album "${album.work_title}".`);
+              workData = {
+                id: track.id,
+                work_title: track.name,
+                work_type: 'track',
+                image_url: album.image_url,
+                artist_name: track.artists?.map((a: any) => a.name).join(', ') || album.artist_name,
+                work_year: album.work_year,
+                genres: album.genres,
+                biography: album.biography, // Optional fallback
+                parent_album_cache: {
+                  id: album.id,
+                  title: album.work_title,
+                  poster_path: album.image_url,
+                  artist_names_display: album.artist_name || album.display_artist_name
+                },
+                rating_avg: 0,
+                rating_count: 0,
+                credits: []
+              } as any;
+              break;
+            }
           }
+        } else {
+          console.log(`[fetchContent] Fallback search returned no albums.`);
         }
       }
 
       if (!workData) {
-        console.error(`[fetchContent] Final fail for ${decodedId}`);
+        console.error(`[fetchContent] ALL resolution failed for ID: "${decodedId}"`);
         return { data: null, error: "Not Found" };
       }
       if (workError) {
