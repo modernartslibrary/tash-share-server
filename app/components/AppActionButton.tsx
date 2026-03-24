@@ -36,17 +36,7 @@ export default function AppActionButton({ type, id }: { type: string, id: string
   };
 
   const getButtonLabel = () => {
-    switch(type) {
-      case 'movie': return '앱에서 영화 정보 보기';
-      case 'tv': return '앱에서 TV 프로그램 보기';
-      case 'track': return '앱에서 곡 정보 보기';
-      case 'album': return '앱에서 앨범 정보 보기';
-      case 'book': return '앱에서 도서 정보 보기';
-      case 'profile': return 'TASH 프로필 보기';
-      case 'post': return '기록 상세보기';
-      case 'list': return '리스트 전체 보기';
-      default: return 'TASH 앱에서 열기';
-    }
+    return '앱에서 열기';
   };
 
   return (
