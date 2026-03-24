@@ -32,7 +32,48 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         query = query.or(`id.eq.${decodedId},id.ilike.%:${decodedId}`);
       }
 
-      const { data: workData, error: workError } = await query.single();
+      const { data: workData, error: workError } = await query.maybeSingle();
+      
+      if (!workData) {
+        // Fallback: If not found as an independent work, check if it exists in an album's tracks_cache
+        // This makes navigation work for tracks that haven't been independently archived yet.
+        const { data: albumData } = await supabase
+          .from("works")
+          .select("*")
+          .contains('tracks_cache', [{ id: decodedId }])
+          .limit(1)
+          .maybeSingle();
+
+        if (albumData) {
+          const track = albumData.tracks_cache.find((t: any) => t.id === decodedId);
+          if (track) {
+            return {
+              data: {
+                id: track.id,
+                work_title: track.name,
+                work_type: 'track',
+                image_url: albumData.image_url,
+                artist_name: track.artists.map((a: any) => a.name).join(', '),
+                work_year: albumData.work_year,
+                genres: albumData.genres,
+                parent_album_cache: {
+                  id: albumData.id,
+                  title: albumData.work_title,
+                  poster_path: albumData.image_url,
+                  artist_names_display: albumData.artist_name || albumData.display_artist_name
+                },
+                rating_avg: 0,
+                rating_count: 0,
+                credits: []
+              } as Work,
+              error: null
+            };
+          }
+        }
+
+        console.error(`[fetchContent] No work found for ${decodedId}`);
+        return { data: null, error: "Not Found" };
+      }
       if (workError) {
         console.error(`[fetchContent] workError for ${decodedId}:`, workError);
         return { data: null, error: workError.message };
