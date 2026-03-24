@@ -9,7 +9,7 @@ interface WorkViewProps {
 }
 
 export default function WorkView({ data }: WorkViewProps) {
-  switch (data.work_type) {
+  switch (data.work_type?.toLowerCase()) {
     case 'movie':
     case 'tv':
       return <MovieLayout data={data} />;
