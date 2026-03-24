@@ -5,7 +5,6 @@ import WorkView from "../../components/WorkView";
 import AppActionButton from "../../components/AppActionButton";
 import Link from "next/link";
 import { Work, Post, List, Profile, Artist, TASHData, Credit } from "../../types";
-import { cache } from "react";
 
 
 export const dynamic = "force-dynamic";
@@ -145,9 +144,11 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     if (workData.credits && !Array.isArray(workData.credits)) {
       const c = workData.credits;
       // Combine director, cast, etc. into a single list
-      if (c.director) creditsArray.push(...c.director);
-      if (c.cast) creditsArray.push(...c.cast);
-      if (c.writer) creditsArray.push(...c.writer);
+      if (c && typeof c === 'object') {
+        if (Array.isArray(c.director)) creditsArray.push(...c.director);
+        if (Array.isArray(c.cast)) creditsArray.push(...c.cast);
+        if (Array.isArray(c.writer)) creditsArray.push(...c.writer);
+      }
     } else if (Array.isArray(workData.credits)) {
       creditsArray = workData.credits;
     }
@@ -173,7 +174,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
   }
 }
 
-const fetchContent = cache(async (type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> => {
+async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
   const decodedId = decodeURIComponent(id).normalize('NFC');
   console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId}`);
   
@@ -354,7 +355,7 @@ const fetchContent = cache(async (type: string, id: string): Promise<{ data: TAS
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { data: null, error: errorMessage };
   }
-});
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ type: string; id: string | string[] }> }): Promise<Metadata> {
   const { type, id } = await params;
