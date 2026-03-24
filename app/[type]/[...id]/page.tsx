@@ -145,9 +145,15 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       const c = workData.credits;
       // Combine director, cast, etc. into a single list
       if (c && typeof c === 'object') {
-        if (Array.isArray(c.director)) creditsArray.push(...c.director);
-        if (Array.isArray(c.cast)) creditsArray.push(...c.cast);
-        if (Array.isArray(c.writer)) creditsArray.push(...c.writer);
+        if (Array.isArray(c.director)) {
+          creditsArray.push(...c.director.map((p: any) => ({ ...p, role: 'director' })));
+        }
+        if (Array.isArray(c.cast)) {
+          creditsArray.push(...c.cast.map((p: any) => ({ ...p, role: 'cast' })));
+        }
+        if (Array.isArray(c.writer)) {
+          creditsArray.push(...c.writer.map((p: any) => ({ ...p, role: 'writer' })));
+        }
       }
     } else if (Array.isArray(workData.credits)) {
       creditsArray = workData.credits;

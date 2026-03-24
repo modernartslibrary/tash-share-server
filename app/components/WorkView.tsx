@@ -353,7 +353,8 @@ function getCategoryLabel(type: string) {
   }
 }
 
-function getRoleLabel(role: string, characterName?: string) {
+function getRoleLabel(role: string | null | undefined, characterName?: string) {
+  if (!role) return characterName || '';
   const roleLower = role.toLowerCase();
   const roleClean = roleLower.replace(/_/g, ' ');
 
