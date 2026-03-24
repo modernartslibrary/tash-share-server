@@ -242,7 +242,7 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
   if (data && type === 'work' && data.id && data.id !== resolvedId) {
     if (data.id.endsWith(resolvedId) || resolvedId === data.id.split(':').pop()) {
        console.log(`[SharePage] Redirecting to canonical ID: ${data.id}`);
-       redirect(`/work/${data.id}`);
+       // redirect(`/work/${data.id}`);
     }
   }
  
