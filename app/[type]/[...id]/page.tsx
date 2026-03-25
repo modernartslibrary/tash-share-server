@@ -265,13 +265,17 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       
       // 0. Infer actual type from prefixed ID if generic 'work' type is used
       let effectiveType = type;
-      const idParts = decodedId.split(':');
-      if (type === 'work' && idParts.length >= 2) {
-        // Handle work:type:id (length 3) or type:id (length 2)
-        const inferred = idParts.length >= 3 ? idParts[1] : idParts[0];
-        if (workTypes.includes(inferred) && inferred !== 'work') {
-          effectiveType = inferred;
-          console.log(`[fetchContent] Inferred type "${effectiveType}" from ID: "${decodedId}"`);
+      if (type === 'work' && decodedId.includes(':')) {
+        const idParts = decodedId.split(':');
+        const firstPart = idParts[0];
+        
+        // If the first part is a known work type, use it
+        if (workTypes.includes(firstPart) && firstPart !== 'work') {
+          effectiveType = firstPart;
+          console.log(`[fetchContent] Inferred type "${effectiveType}" from canonical ID prefix`);
+        } else if (idParts.length >= 3 && workTypes.includes(idParts[1])) {
+          // rare legacy case: work:type:id
+          effectiveType = idParts[1];
         }
       }
 
