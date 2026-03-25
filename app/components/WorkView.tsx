@@ -59,7 +59,13 @@ function MovieLayout({ data }: { data: Work }) {
             {getCategoryLabel(data.work_type)} · {data.artist_name}{data.work_year ? `, ${data.work_year}` : ''}
           </p>
           <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
-            {data.production_countries?.join(', ') || '한국'} · {data.genres?.join(', ')} · {formatRuntime(data.runtime_minutes)}
+            {data.production_countries && data.production_countries.length > 0 
+              ? data.production_countries.map(c => getCountryName(c)).join(', ') 
+              : ''}
+            {data.production_countries?.length && data.genres?.length ? ' · ' : ''}
+            {data.genres?.join(', ')}
+            {data.genres?.length && (data.runtime_minutes || (data.work_type === 'tv' && data.total_episodes)) ? ' · ' : ''}
+            {data.work_type === 'tv' && data.total_episodes ? `총 ${data.total_episodes}화` : formatRuntime(data.runtime_minutes)}
           </p>
         </div>
       </div>
@@ -414,4 +420,26 @@ function formatRuntime(minutes: number | null | undefined) {
   const m = minutes % 60;
   if (h > 0) return `${h}시간 ${m}분`;
   return `${m}분`;
+}
+
+function getCountryName(country: string) {
+  if (!country) return '';
+  const mapping: Record<string, string> = {
+    'US': '미국',
+    'KR': '한국',
+    'JP': '일본',
+    'GB': '영국',
+    'FR': '프랑스',
+    'DE': '독일',
+    'CN': '중국',
+    'ES': '스페인',
+    'IT': '이탈리아',
+    'CA': '캐나다',
+    'AU': '호주',
+    'IN': '인도',
+    'RU': '러시아',
+    'HK': '홍콩',
+    'TW': '대만',
+  };
+  return mapping[country.toUpperCase()] || country;
 }

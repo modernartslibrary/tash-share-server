@@ -54,7 +54,12 @@ async function enrichWorkData(workData: any): Promise<Work> {
 
     // Map them together
     waData.forEach((wa: any) => {
-      const artist = aData?.find((a: any) => a.id === wa.artist_id);
+      // Precise or Suffix match for artist ID
+      const artist = aData?.find((a: any) => 
+        a.id === wa.artist_id || 
+        (a.id.includes(':') && wa.artist_id.includes(':') && a.id.split(':').pop() === wa.artist_id.split(':').pop())
+      );
+      
       const name = artist?.name || '';
       // Only add if name exists, or use a fallback if absolutely necessary
       if (name) {
@@ -405,7 +410,13 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       if (dbWork) {
         console.log(`[fetchContent] Resolved to DB work: ${dbWork.id}`);
         const enriched = await assembleEnriched(dbWork, postsRes.data, waRes.data);
-        return { data: enriched, error: null };
+        
+        // If credits are empty for non-book works, try API fallback as a last resort
+        if ((!enriched.credits || enriched.credits.length === 0) && effectiveType !== 'book') {
+          console.log(`[fetchContent] Credits empty for ${dbWork.id}, attempting API fallback...`);
+        } else {
+          return { data: enriched, error: null };
+        }
       }
 
       // 5. Fallback: Resolve via Edge Functions for uncached works
