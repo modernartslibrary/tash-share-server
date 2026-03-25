@@ -289,9 +289,16 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       let dbWork = exactMatch || suffixMatch;
 
       // 3. Special handling for tracks (search in album caches)
-      const looksLikeTrack = type === 'track' || dbWork?.work_type === 'track' || (!dbWork && type === 'work');
+      // Only treat as track if explicitly requested as 'track' type, 
+      // or if found in DB as 'track', 
+      // or if URL is /work/... and the ID explicitly starts with 'track:'
+      const looksLikeTrack = type === 'track' || 
+                           dbWork?.work_type === 'track' || 
+                           (type === 'work' && decodedId.startsWith('track:')) ||
+                           (type === 'work' && !dbWork && !decodedId.includes(':')); // legacy fallback
       
       if (looksLikeTrack) {
+        console.log(`[fetchContent] Checking parent album for track: ${suffixId}`);
         const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
           search_id: suffixId 
         });
