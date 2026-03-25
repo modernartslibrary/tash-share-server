@@ -73,7 +73,8 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     if (!supabaseUrl || !supabaseAnonKey) return null;
 
     const functionName = "ensure-work-exists";
-    const body = { work_id: id, work_type: type };
+    const TASH_INTERNAL_SECRET = 'tash_sync_secret_2026_redacted';
+    const body = { work_id: id, work_type: type, internal_secret: TASH_INTERNAL_SECRET };
     
     if (!functionName) return null;
 
