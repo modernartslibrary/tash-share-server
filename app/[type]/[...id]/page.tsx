@@ -33,33 +33,41 @@ async function enrichWorkData(workData: any): Promise<Work> {
     rating_avg = total / rating_count;
   }
 
-  // Fetch Credits
-  const { data: creditsData } = await supabase
+  // Fetch Credits (Manual join because some DBs have no foreign keys)
+  const { data: waData } = await supabase
     .from("work_artist")
-    .select(`
-      role,
-      character_name,
-      artist_order,
-      artists (
-        id,
-        name,
-        profile_path
-      )
-    `)
+    .select("role, character_name, artist_id, artist_order")
     .eq("work_id", workData.id)
     .order("artist_order", { ascending: true })
     .limit(20);
 
-  const credits: Credit[] = (creditsData || []).map((c: any) => {
-    const artist = Array.isArray(c.artists) ? c.artists[0] : c.artists;
-    return {
-      id: artist?.id || Math.random().toString(),
-      name: artist?.name || '',
-      profile_path: artist?.profile_path || null,
-      role: c.role || '',
-      character_name: c.character_name || ''
-    };
-  });
+  const credits: Credit[] = [];
+  if (waData && waData.length > 0) {
+    // Collect unique artist IDs
+    const artistIds = Array.from(new Set(waData.map((wa: any) => wa.artist_id).filter(Boolean)));
+    
+    // Fetch artist profiles
+    const { data: aData } = await supabase
+      .from("artists")
+      .select("id, name, profile_path")
+      .in("id", artistIds);
+
+    // Map them together
+    waData.forEach((wa: any) => {
+      const artist = aData?.find((a: any) => a.id === wa.artist_id);
+      const name = artist?.name || '';
+      // Only add if name exists, or use a fallback if absolutely necessary
+      if (name) {
+        credits.push({
+          id: artist?.id || wa.artist_id || `fallback:${name}`,
+          name: name,
+          profile_path: artist?.profile_path || null,
+          role: wa.role || '',
+          character_name: wa.character_name || ''
+        });
+      }
+    });
+  }
 
   return {
     ...workData,
@@ -132,28 +140,37 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     // Flatten and normalize credits
     const finalCredits: any[] = [];
     
-    // 1. Add credits from the main credits array
+    // 1. Add credits from the main credits array (supports various formats)
     if (Array.isArray(creditsArray)) {
-      finalCredits.push(...creditsArray.map(c => ({
-        id: c.id || c.credit_id || Math.random().toString(),
-        name: c.name || c.person?.name || c.artist?.name || '',
-        role: c.role || c.job || (type === 'book' ? '작가' : '출연'),
-        image_url: c.image_url || (c.person?.profile_path ? `https://image.tmdb.org/t/p/w200${c.person.profile_path}` : null)
-      })));
+      finalCredits.push(...creditsArray.map(c => {
+        // Paranoid name check: all possible variations from Edge Function and DB Joins
+        const name = (c.name || c.artist_name || c.person_name || c.credit_name || c.display_name || c.person?.name || c.artist?.name || '').trim();
+        const id = c.id || c.artist_id || c.credit_id || (name ? `fallback:${name}` : Math.random().toString());
+        return {
+          id,
+          name,
+          role: c.role || c.job || (type === 'book' ? '작가' : '출연'),
+          profile_path: c.profile_path || c.image_url || (c.person?.profile_path ? `https://image.tmdb.org/t/p/w200${c.person.profile_path}` : null)
+        };
+      }).filter(c => c.name)); // Filter out items with no name
     }
 
-    // 2. Add credits from workData.credits object (legacy TMDB style)
+    // 2. Add credits from workData.credits object (legacy/nested TMDB style)
     if (workData.credits && !Array.isArray(workData.credits)) {
       const c = workData.credits;
       if (c && typeof c === 'object') {
-        const extract = (arr: any[], role: string) => {
+        const extract = (arr: any[], defaultRole: string) => {
           if (Array.isArray(arr)) {
-            finalCredits.push(...arr.map(p => ({
-              id: p.id || p.credit_id || Math.random().toString(),
-              name: p.name || p.person?.name || '',
-              role: role,
-              image_url: p.image_url || (p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : null)
-            })));
+            finalCredits.push(...arr.map(p => {
+              const name = (p.name || p.artist_name || p.person?.name || '').trim();
+              const id = p.id || p.artist_id || p.credit_id || (name ? `fallback:${name}` : Math.random().toString());
+              return {
+                id,
+                name,
+                role: p.role || p.job || defaultRole,
+                profile_path: p.profile_path || p.image_url || (p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : null)
+              };
+            }).filter(p => p.name));
           }
         };
         extract(c.director, 'director');
@@ -166,18 +183,30 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     // 3. Fallback for books if author is missing from credits
     if (type === "book" && (workData.author || workData.artist_name)) {
       const authorName = (workData.author || workData.artist_name).replace(/,\s*$/, '').trim();
-      if (!finalCredits.some(c => c.name === authorName)) {
+      if (authorName && !finalCredits.some(c => c.name?.trim().toLowerCase() === authorName.toLowerCase())) {
         finalCredits.push({
           id: `author:${authorName}`,
           name: authorName,
           role: '작가',
-          image_url: null
+          profile_path: null
         });
       }
     }
 
-    // De-duplicate credits by ID or Name
-    const uniqueCredits = Array.from(new Map(finalCredits.map(c => [c.id || c.name, c])).values());
+    // De-duplicate credits: Priority to ones with names/profiles
+    // Use a composite key of Name + Role for safest de-duplication when IDs vary
+    const uniqueCreditsMap = new Map();
+    finalCredits.forEach(c => {
+      if (!c.name) return; // redundant safety
+      const key = `${(c.role || '').toLowerCase()}:${(c.name || '').toLowerCase()}`;
+      const existing = uniqueCreditsMap.get(key);
+      
+      // Keep if new, or if current has image and old doesn't
+      if (!existing || (!existing.profile_path && c.profile_path)) {
+        uniqueCreditsMap.set(key, c);
+      }
+    });
+    const uniqueCredits = Array.from(uniqueCreditsMap.values());
 
     // Robust year extraction
     let extractedYear: number | null = null;
@@ -264,13 +293,16 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
           const enriched = await enrichWorkData({ id: resolvedId });
           
           const artistsFromCache = trackInCache?.artists || [];
-          const trackCredits = artistsFromCache.map((a: any, idx: number) => ({
-            id: a.id,
-            name: a.name,
-            profile_path: null,
-            role: 'artist',
-            artist_order: idx
-          }));
+          const trackCredits = (artistsFromCache || []).map((a: any, idx: number) => {
+            const name = a.name || a.artist_name || '';
+            return {
+              id: a.id || (name ? `fallback:${name}` : `track-artist-${idx}`),
+              name,
+              profile_path: a.profile_path || null,
+              role: 'artist',
+              artist_order: idx
+            };
+          });
 
           if (trackCredits.length > 0) {
             const pureIds = trackCredits.map((c: any) => c.id);
