@@ -50,13 +50,16 @@ async function enrichWorkData(workData: any): Promise<Work> {
     .order("artist_order", { ascending: true })
     .limit(20);
 
-  const credits: Credit[] = (creditsData || []).map((c: any) => ({
-    id: c.artists?.id,
-    name: c.artists?.name || '',
-    profile_path: c.artists?.profile_path,
-    role: c.role,
-    character_name: c.character_name
-  }));
+  const credits: Credit[] = (creditsData || []).map((c: any) => {
+    const artist = Array.isArray(c.artists) ? c.artists[0] : c.artists;
+    return {
+      id: artist?.id || Math.random().toString(),
+      name: artist?.name || '',
+      profile_path: artist?.profile_path || null,
+      role: c.role || '',
+      character_name: c.character_name || ''
+    };
+  });
 
   return {
     ...workData,
@@ -186,7 +189,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
 
     return {
       id: workData.id || id,
-      work_title: workData.work_title || workData.title || '',
+      work_title: workData.work_title || workData.title || workData.name || '',
       work_type: workData.work_type || type,
       image_url: workData.image_url || workData.poster_path || workData.image || '',
       artist_name: (workData.artist_name || workData.artist_names_display || workData.author || '').replace(/,\s*$/, '').trim(),

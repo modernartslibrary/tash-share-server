@@ -29,7 +29,7 @@ export default function AppActionButton({ type, id }: { type: string, id: string
           window.location.href = appStoreUrl;
         } else {
           // PC 등 기타 환경은 웹 공식 사이트 등으로 유도 가능
-          window.location.href = 'https://tash.kr';
+          window.location.href = 'https://tash.kr/download';
         }
       }
     }, 2500);
