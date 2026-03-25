@@ -72,27 +72,8 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !supabaseAnonKey) return null;
 
-    let functionName = "";
-    let body = {};
-    
-    // Choose appropriate Edge Function based on type
-    if (type === "movie") {
-      functionName = "tmdb-get-movie-details";
-      body = { movieId: id };
-    } else if (type === "tv") {
-      functionName = "tmdb-get-tv-details";
-      body = { seriesId: id };
-    } else if (type === "book") {
-      functionName = "naver-search-books";
-      body = { query: id }; // ISBN is the id in our links
-    } else if (type === "track" || type === "album") {
-      functionName = "spotify-search-works";
-      body = { query: id, types: [type], limit: 10 };
-    } else {
-      // Generic fallback for others
-      functionName = "ensure-work-exists";
-      body = { work_id: id, work_type: type };
-    }
+    const functionName = "ensure-work-exists";
+    const body = { work_id: id, work_type: type };
     
     if (!functionName) return null;
 
