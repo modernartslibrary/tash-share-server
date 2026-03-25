@@ -329,7 +329,7 @@ function BookLayout({ data }: { data: Work }) {
       {/* Credits */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
-          <h3 className="text-[18px] font-bold text-black mb-4">만든 사람들</h3>
+          <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {data.credits.map((credit) => (
               <div key={credit.id} className="flex items-center gap-2">
