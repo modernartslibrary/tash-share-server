@@ -105,58 +105,75 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       return null;
     }
 
-    const { data } = await response.json();
-    if (!data) return null;
+    const result = await response.json();
+    const resolvedData = result.data || result; 
 
-    // Normalize data from different Edge Functions
-    let workData = data;
-    if (type === "book" && data.items && data.items.length > 0) {
-      workData = data.items[0];
-    } else if ((type === "track" || type === "album") && Array.isArray(data) && data.length > 0) {
-      // Find exact match by ID among search results
-      workData = data.find((v: any) => v.id === id) || data[0];
-    } else if (data.work) {
+    let workData: any = null;
+    let creditsArray: any[] = [];
+    let tracksArray: any[] = [];
+
+    if (Array.isArray(resolvedData)) {
+      // handle search results
+      workData = resolvedData.find((v: any) => v.id === id) || resolvedData[0];
+      creditsArray = workData?.credits || [];
+    } else if (resolvedData.work) {
       // handle ensure-work-exists output format
-      workData = { 
-        ...data.work, 
-        credits: data.credits || [],
-        tracks_cache: data.tracks || []
-      };
+      workData = resolvedData.work;
+      creditsArray = resolvedData.credits || [];
+      tracksArray = resolvedData.tracks || [];
     }
 
     if (!workData) return null;
 
-    // Flatten credits if it's an object (TMDB style) into an array (TASH style)
-    let creditsArray: any[] = [];
+    // Flatten and normalize credits
+    const finalCredits: any[] = [];
+    
+    // 1. Add credits from the main credits array
+    if (Array.isArray(creditsArray)) {
+      finalCredits.push(...creditsArray.map(c => ({
+        id: c.id || c.credit_id || Math.random().toString(),
+        name: c.name || c.person?.name || c.artist?.name || '',
+        role: c.role || c.job || (type === 'book' ? '작가' : '출연'),
+        image_url: c.image_url || (c.person?.profile_path ? `https://image.tmdb.org/t/p/w200${c.person.profile_path}` : null)
+      })));
+    }
+
+    // 2. Add credits from workData.credits object (legacy TMDB style)
     if (workData.credits && !Array.isArray(workData.credits)) {
       const c = workData.credits;
-      // Combine director, cast, etc. into a single list
       if (c && typeof c === 'object') {
-        if (Array.isArray(c.director)) {
-          creditsArray.push(...c.director.map((p: any) => ({ ...p, role: 'director' })));
-        }
-        if (Array.isArray(c.cast)) {
-          creditsArray.push(...c.cast.map((p: any) => ({ ...p, role: 'cast' })));
-        }
-        if (Array.isArray(c.writer)) {
-          creditsArray.push(...c.writer.map((p: any) => ({ ...p, role: 'writer' })));
-        }
-        if (Array.isArray(c.artist)) {
-          creditsArray.push(...c.artist.map((p: any) => ({ ...p, role: 'artist' })));
-        }
+        const extract = (arr: any[], role: string) => {
+          if (Array.isArray(arr)) {
+            finalCredits.push(...arr.map(p => ({
+              id: p.id || p.credit_id || Math.random().toString(),
+              name: p.name || p.person?.name || '',
+              role: role,
+              image_url: p.image_url || (p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : null)
+            })));
+          }
+        };
+        extract(c.director, 'director');
+        extract(c.cast, 'cast');
+        extract(c.writer, 'writer');
+        extract(c.artist, 'artist');
       }
-    } else if (type === "book" && workData.author) {
-      // Add author to credits for books
-      const authorName = workData.author.replace(/,\s*$/, '').trim();
-      creditsArray.push({
-        id: `author:${authorName}`,
-        name: authorName,
-        role: 'author',
-        profile_path: null
-      });
-    } else if (Array.isArray(workData.credits)) {
-      creditsArray = workData.credits;
     }
+
+    // 3. Fallback for books if author is missing from credits
+    if (type === "book" && (workData.author || workData.artist_name)) {
+      const authorName = (workData.author || workData.artist_name).replace(/,\s*$/, '').trim();
+      if (!finalCredits.some(c => c.name === authorName)) {
+        finalCredits.push({
+          id: `author:${authorName}`,
+          name: authorName,
+          role: '작가',
+          image_url: null
+        });
+      }
+    }
+
+    // De-duplicate credits by ID or Name
+    const uniqueCredits = Array.from(new Map(finalCredits.map(c => [c.id || c.name, c])).values());
 
     // Robust year extraction
     let extractedYear: number | null = null;
@@ -179,9 +196,9 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       biography: workData.biography || workData.overview || '',
       rating_avg: workData.rating_avg || 0,
       rating_count: workData.rating_count || 0,
-      credits: creditsArray,
+      credits: uniqueCredits,
       parent_album_cache: workData.parent_album || workData.parent_album_cache,
-      tracks_cache: workData.tracks_cache || []
+      tracks_cache: tracksArray.length > 0 ? tracksArray : (workData.tracks_cache || [])
     } as Work;
   } catch (err) {
     console.error(`[fetchFallbackMetadata] Error during fallback:`, err);

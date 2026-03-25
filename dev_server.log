@@ -3652,3 +3652,8 @@ Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allow
 ✓ Compiled in 177ms
 ✓ Compiled in 270ms
 ✓ Compiled in 159ms
+[Server HMR] Update failed, full reload needed: SyntaxError: Identifier 'data' has already been declared
+    at eval (<anonymous>)
+[Server HMR] Listener error: SyntaxError: Identifier 'data' has already been declared
+    at eval (<anonymous>)
+✓ Compiled in 72ms
