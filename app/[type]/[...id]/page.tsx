@@ -137,6 +137,17 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
 
     if (!workData) return null;
 
+    // [BFF 통합] 트랙의 부모 앨범 필드 매핑 보강
+    // ensure-work-exists는 'title', 'poster_path'를 사용함
+    if (workData.parent_album && !workData.parent_album_cache) {
+      workData.parent_album_cache = {
+        id: workData.parent_album.id,
+        title: workData.parent_album.title || workData.parent_album.work_title,
+        poster_path: workData.parent_album.poster_path || workData.parent_album.image_url,
+        artist_names_display: workData.parent_album.artist_names_display || workData.parent_album.artist_name || workData.parent_album.display_artist_name
+      };
+    }
+
     // Flatten and normalize credits
     const finalCredits: any[] = [];
     
@@ -291,6 +302,9 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       // 3. Special handling for tracks (search in album caches)
       // Only treat as track if explicitly requested as 'track' type, 
       // or if found in DB as 'track', 
+      // 3. Special handling for tracks (search in album caches)
+      // Only treat as track if explicitly requested as 'track' type, 
+      // or if found in DB as 'track', 
       // or if URL is /work/... and the ID explicitly starts with 'track:'
       const looksLikeTrack = type === 'track' || 
                            dbWork?.work_type === 'track' || 
@@ -356,9 +370,9 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
               genres: parentAlbum?.genres || dbWork?.genres,
               parent_album_cache: parentAlbum ? {
                 id: parentAlbum.id,
-                title: parentAlbum.work_title,
-                poster_path: parentAlbum.image_url,
-                artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name
+                title: parentAlbum.work_title || parentAlbum.title,
+                poster_path: parentAlbum.image_url || parentAlbum.poster_path,
+                artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name || parentAlbum.artist_names_display
               } : dbWork?.parent_album_cache,
               rating_avg: enriched.rating_avg || 0,
               rating_count: enriched.rating_count || 0,
