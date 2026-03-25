@@ -18,35 +18,35 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function enrichWorkData(workData: any): Promise<Work> {
-  // Fetch Ratings and Count
-  const { data: postsData } = await supabase
-    .from("posts")
-    .select("rating")
-    .eq("work_id", workData.id)
-    .not("rating", "is", null);
+  // Fetch Ratings and Credits in parallel
+  const [postsRes, waRes] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("rating")
+      .eq("work_id", workData.id)
+      .not("rating", "is", null),
+    supabase
+      .from("work_artist")
+      .select("role, character_name, artist_id, artist_order")
+      .eq("work_id", workData.id)
+      .order("artist_order", { ascending: true })
+      .limit(20)
+  ]);
+
+  const postsData = postsRes.data;
+  const waData = waRes.data;
 
   let rating_avg = 0;
   let rating_count = 0;
   if (postsData && postsData.length > 0) {
     rating_count = postsData.length;
-    const total = postsData.reduce((acc, p) => acc + (p.rating || 0), 0);
+    const total = postsData.reduce((acc: any, p: any) => acc + (p.rating || 0), 0);
     rating_avg = total / rating_count;
   }
 
-  // Fetch Credits (Manual join because some DBs have no foreign keys)
-  const { data: waData } = await supabase
-    .from("work_artist")
-    .select("role, character_name, artist_id, artist_order")
-    .eq("work_id", workData.id)
-    .order("artist_order", { ascending: true })
-    .limit(20);
-
   const credits: Credit[] = [];
   if (waData && waData.length > 0) {
-    // Collect unique artist IDs
     const artistIds = Array.from(new Set(waData.map((wa: any) => wa.artist_id).filter(Boolean)));
-    
-    // Fetch artist profiles
     const { data: aData } = await supabase
       .from("artists")
       .select("id, name, profile_path")
@@ -281,45 +281,31 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
       const suffixId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
       
-      // 1. Try finding in works table (exact match first)
-      const { data: exactMatch } = await supabase
-        .from("works")
-        .select("*")
-        .eq("id", decodedId)
-        .maybeSingle();
-      
-      // 2. Try finding by suffix if no exact match (important for search result links)
-      let suffixMatch = null;
-      if (!exactMatch) {
-        const { data: suffixResults } = await supabase
-          .from("works")
-          .select("*")
-          .ilike("id", `%:${suffixId}`)
-          .limit(1);
-        if (suffixResults && suffixResults.length > 0) {
-          suffixMatch = suffixResults[0];
-        }
-      }
+      // Determine if we need to check for track parent album
+      const potentialTrack = type === 'track' || (type === 'work' && (decodedId.startsWith('track:') || !decodedId.includes(':')));
+
+      // 1~3. Parallel lookups for maximum speed
+      console.log(`[fetchContent] Starting parallel lookups for ${decodedId}`);
+      const [exactMatchRes, suffixMatchRes, albumByTrackRes] = await Promise.all([
+        supabase.from("works").select("*").eq("id", decodedId).maybeSingle(),
+        supabase.from("works").select("*").ilike("id", `%:${suffixId}`).limit(1),
+        potentialTrack ? supabase.rpc('search_works_by_track_id', { search_id: suffixId }) : Promise.resolve({ data: null })
+      ]);
+
+      const exactMatch = exactMatchRes.data;
+      const suffixMatch = suffixMatchRes.data && suffixMatchRes.data.length > 0 ? suffixMatchRes.data[0] : null;
+      const albums = albumByTrackRes.data;
       
       let dbWork = exactMatch || suffixMatch;
 
       // 3. Special handling for tracks (search in album caches)
-      // Only treat as track if explicitly requested as 'track' type, 
-      // or if found in DB as 'track', 
-      // 3. Special handling for tracks (search in album caches)
-      // Only treat as track if explicitly requested as 'track' type, 
-      // or if found in DB as 'track', 
-      // or if URL is /work/... and the ID explicitly starts with 'track:'
       const looksLikeTrack = type === 'track' || 
                            dbWork?.work_type === 'track' || 
                            (type === 'work' && decodedId.startsWith('track:')) ||
-                           (type === 'work' && !dbWork && !decodedId.includes(':')); // legacy fallback
+                           (type === 'work' && !dbWork && !decodedId.includes(':'));
       
       if (looksLikeTrack) {
         console.log(`[fetchContent] Checking parent album for track: ${suffixId}`);
-        const { data: albums } = await supabase.rpc('search_works_by_track_id', { 
-          search_id: suffixId 
-        });
 
         const parentAlbum = albums && albums.length > 0 ? albums[0] : null;
         const trackInCache = parentAlbum?.tracks_cache?.find((t: any) => 
