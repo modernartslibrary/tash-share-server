@@ -251,6 +251,19 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
     
     if (workTypes.includes(type)) {
       console.log(`[fetchContent] Resolving ${type} for ID: "${decodedId}"`);
+      
+      // 0. Infer actual type from prefixed ID if generic 'work' type is used
+      let effectiveType = type;
+      const idParts = decodedId.split(':');
+      if (type === 'work' && idParts.length >= 2) {
+        // Handle work:type:id (length 3) or type:id (length 2)
+        const inferred = idParts.length >= 3 ? idParts[1] : idParts[0];
+        if (workTypes.includes(inferred) && inferred !== 'work') {
+          effectiveType = inferred;
+          console.log(`[fetchContent] Inferred type "${effectiveType}" from ID: "${decodedId}"`);
+        }
+      }
+
       const suffixId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
       
       // 1. Try finding in works table (exact match first)
@@ -358,7 +371,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       }
 
       // 5. Fallback: Resolve via Edge Functions for uncached works
-      const fallbackData = await fetchFallbackMetadata(type, suffixId);
+      const fallbackData = await fetchFallbackMetadata(effectiveType, suffixId);
       if (fallbackData) {
         console.log(`[fetchContent] Resolved via Fallback API: ${suffixId}`);
         return { data: fallbackData, error: null };
