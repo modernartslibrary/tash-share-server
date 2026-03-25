@@ -284,12 +284,15 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       // Determine if we need to check for track parent album
       const potentialTrack = type === 'track' || (type === 'work' && (decodedId.startsWith('track:') || !decodedId.includes(':')));
 
-      // 1~3. Parallel lookups for maximum speed
-      console.log(`[fetchContent] Starting parallel lookups for ${decodedId}`);
-      const [exactMatchRes, suffixMatchRes, albumByTrackRes] = await Promise.all([
+      // 1~4. Aggressive Parallelism: Fetch main work, possible track album, AND enrichment data all at once
+      console.log(`[fetchContent] Starting aggressive parallel lookups for ${decodedId}`);
+      const [exactMatchRes, suffixMatchRes, albumByTrackRes, postsRes, waRes] = await Promise.all([
         supabase.from("works").select("*").eq("id", decodedId).maybeSingle(),
         supabase.from("works").select("*").ilike("id", `%:${suffixId}`).limit(1),
-        potentialTrack ? supabase.rpc('search_works_by_track_id', { search_id: suffixId }) : Promise.resolve({ data: null })
+        potentialTrack ? supabase.rpc('search_works_by_track_id', { search_id: suffixId }) : Promise.resolve({ data: null }),
+        // Speculatively fetch ratings and credits for decodedId
+        supabase.from("posts").select("rating").eq("work_id", decodedId).not("rating", "is", null),
+        supabase.from("work_artist").select("role, character_name, artist_id, artist_order").eq("work_id", decodedId).order("artist_order", { ascending: true }).limit(20)
       ]);
 
       const exactMatch = exactMatchRes.data;
@@ -297,6 +300,29 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       const albums = albumByTrackRes.data;
       
       let dbWork = exactMatch || suffixMatch;
+
+      // Helper function to assemble enriched data from pre-fetched parallel results
+      const assembleEnriched = async (work: any, prePosts: any, preWa: any) => {
+        // If the work we found is different from the decodedId (e.g. suffix match), we might need fresh enrichment
+        // but for exact matches, we already have it!
+        if (work.id === decodedId) {
+          const rating_count = prePosts?.length || 0;
+          const rating_avg = rating_count > 0 ? prePosts.reduce((acc: any, p: any) => acc + (p.rating || 0), 0) / rating_count : 0;
+          
+          let credits: Credit[] = [];
+          if (preWa && preWa.length > 0) {
+            const artistIds = Array.from(new Set(preWa.map((wa: any) => wa.artist_id).filter(Boolean)));
+            const { data: aData } = await supabase.from("artists").select("id, name, profile_path").in("id", artistIds);
+            credits = preWa.map((wa: any) => {
+              const artist = aData?.find(a => a.id === wa.artist_id);
+              return { id: wa.artist_id, name: artist?.name || 'Unknown', profile_path: artist?.profile_path, role: wa.role, character_name: wa.character_name };
+            });
+          }
+          return { ...work, rating_avg, rating_count, credits };
+        }
+        // Fallback for suffix/track matches that weren't the decodedId
+        return await enrichWorkData(work);
+      };
 
       // 3. Special handling for tracks (search in album caches)
       const looksLikeTrack = type === 'track' || 
@@ -314,7 +340,6 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
         if (trackInCache || dbWork?.work_type === 'track') {
           const resolvedId = trackInCache?.id || dbWork?.id || decodedId;
-          const enriched = await enrichWorkData({ id: resolvedId });
           
           const artistsFromCache = trackInCache?.artists || [];
           const trackCredits = (artistsFromCache || []).map((a: any, idx: number) => {
@@ -349,6 +374,8 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
             }
           }
 
+          const enriched = await assembleEnriched(parentAlbum, postsRes.data, waRes.data);
+          
           return {
             data: {
               id: resolvedId,
@@ -377,7 +404,7 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       // 4. Return DB work if resolved
       if (dbWork) {
         console.log(`[fetchContent] Resolved to DB work: ${dbWork.id}`);
-        const enriched = await enrichWorkData(dbWork);
+        const enriched = await assembleEnriched(dbWork, postsRes.data, waRes.data);
         return { data: enriched, error: null };
       }
 
