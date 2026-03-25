@@ -94,9 +94,9 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
 
     console.log(`[fetchFallbackMetadata] Triggering fallback for ${type}/${id} via ${functionName}`);
     
-    // Add a 8 second timeout to prevent hanging the whole request
+    // Add a 12 second timeout to prevent hanging the whole request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
       method: 'POST',
