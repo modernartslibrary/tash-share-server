@@ -392,14 +392,15 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       }
 
       // 5. Fallback: Resolve via Edge Functions for uncached works
-      const fallbackData = await fetchFallbackMetadata(effectiveType, suffixId);
+      const fallbackData = await fetchFallbackMetadata(effectiveType, decodedId);
       if (fallbackData) {
-        console.log(`[fetchContent] Resolved via Fallback API: ${suffixId}`);
+        console.log(`[fetchContent] Resolved via Fallback API: ${decodedId}`);
         return { data: fallbackData, error: null };
       }
 
-      console.error(`[fetchContent] No DB or API match found for ${type}/${decodedId}`);
-      return { data: null, error: "Not Found" };
+      const debugInfo = `Type: ${type}, EffectiveType: ${effectiveType}, DecodedId: ${decodedId}, SuffixId: ${suffixId}`;
+      console.error(`[fetchContent] No DB or API match found for ${debugInfo}`);
+      return { data: null, error: `Information Not Found (Debug: ${debugInfo})` };
       
     } else if (type === "post") {
       const { data, error } = await supabase.from("posts").select("*, profiles(*), works(*)").eq("id", decodedId).single();
