@@ -51,9 +51,9 @@ async function enrichWorkData(workData: any): Promise<Work> {
     .limit(20);
 
   const credits: Credit[] = (creditsData || []).map((c: any) => ({
-    id: c.artists.id,
-    name: c.artists.name,
-    profile_path: c.artists.profile_path,
+    id: c.artists?.id,
+    name: c.artists?.name || '',
+    profile_path: c.artists?.profile_path,
     role: c.role,
     character_name: c.character_name
   }));
@@ -74,7 +74,7 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
 
     const functionName = "ensure-work-exists";
     const TASH_INTERNAL_SECRET = 'tash_sync_secret_2026_redacted';
-    const body = { work_id: id, work_type: type, internal_secret: TASH_INTERNAL_SECRET };
+    const body = { work_id: id, work_type: type };
     
     if (!functionName) return null;
 
@@ -91,7 +91,8 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader
+        'Authorization': authHeader,
+        'x-tash-internal-key': TASH_INTERNAL_SECRET,
       },
       body: JSON.stringify(body),
       signal: controller.signal

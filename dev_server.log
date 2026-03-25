@@ -3657,3 +3657,5 @@ Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allow
 [Server HMR] Listener error: SyntaxError: Identifier 'data' has already been declared
     at eval (<anonymous>)
 ✓ Compiled in 72ms
+✓ Compiled in 203ms
+✓ Compiled in 279ms
