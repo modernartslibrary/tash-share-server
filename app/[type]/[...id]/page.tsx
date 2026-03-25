@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
 import ProfileView from "../../components/ProfileView";
 import WorkView from "../../components/WorkView";
+import ArtistView from "../../components/ArtistView";
 import AppActionButton from "../../components/AppActionButton";
 import Link from "next/link";
 import { Work, Post, List, Profile, Artist, TASHData, Credit } from "../../types";
@@ -255,6 +256,67 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
   }
 }
 
+async function fetchArtistFallback(id: string): Promise<Artist | null> {
+  try {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const authHeader = serviceRoleKey ? `Bearer ${serviceRoleKey}` : `Bearer ${SUPABASE_ANON_KEY}`;
+    const TASH_INTERNAL_SECRET = 'tash_sync_secret_2026_redacted';
+
+    // 1. Determine Source
+    let artistData: any = null;
+    const isSpotify = id.startsWith('artist:music:') || /^[a-zA-Z0-9]{22}$/.test(id);
+    const isTmdb = id.startsWith('artist:video:') || /^\d+$/.test(id);
+
+    if (isSpotify) {
+      const spotifyId = id.includes(':') ? id.split(':').pop() : id;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/spotify-get-artist-details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        body: JSON.stringify({ artistId: spotifyId })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        artistData = json.data || json;
+      }
+    } else if (isTmdb) {
+      const tmdbId = id.includes(':') ? id.split(':').pop() : id;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/tmdb-get-person-details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        body: JSON.stringify({ personId: tmdbId })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const d = json.data || json;
+        artistData = {
+          id: `artist:video:${tmdbId}`,
+          name: d.name,
+          profile_path: d.profile_path,
+          biography: d.biography
+        };
+      }
+    }
+
+    if (!artistData) return null;
+
+    // 2. Persist to DB via ensure-artist-exists
+    await fetch(`${SUPABASE_URL}/functions/v1/ensure-artist-exists`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': authHeader,
+        'x-tash-internal-key': TASH_INTERNAL_SECRET
+      },
+      body: JSON.stringify(artistData)
+    });
+
+    return artistData as Artist;
+  } catch (err) {
+    console.error(`[fetchArtistFallback] Error:`, err);
+    return null;
+  }
+}
+
 async function fetchContent(type: string, id: string): Promise<{ data: TASHData | null; error: string | null }> {
   const decodedId = decodeURIComponent(id).normalize('NFC');
   console.log(`[fetchContent] type: ${type}, id: ${id}, decodedId: ${decodedId}`);
@@ -474,7 +536,46 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         error: null
       };
     } else if (type === "artist") {
-      const { data, error } = await supabase.from("artists").select("*").eq("id", decodedId).single();
+      const suffixId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
+      console.log(`[fetchContent] Resolving artist for ID: "${decodedId}" (Suffix: ${suffixId})`);
+      
+      let { data, error } = await supabase
+        .from("artists")
+        .select("*")
+        .or(`id.eq.${decodedId},id.ilike.%:${suffixId}`)
+        .limit(1)
+        .maybeSingle();
+
+      // Fallback: If not in DB, sync from external APIs
+      if (!data && !error) {
+        console.log(`[fetchContent] Artist not found in DB, attempting fallback sync...`);
+        data = await fetchArtistFallback(decodedId);
+      }
+
+      if (data) {
+        // Fetch Artist's Works
+        const { data: worksData } = await supabase
+          .from("work_artist")
+          .select(`
+            works (
+              id,
+              work_title,
+              work_type,
+              work_year,
+              image_url
+            )
+          `)
+          .eq("artist_id", data.id)
+          .order("artist_order", { ascending: true })
+          .limit(12);
+
+        const initial_works = (worksData || [])
+          .map((w: any) => w.works)
+          .filter((w: any) => w !== null);
+
+        return { data: { ...data, initial_works }, error: null };
+      }
+
       return { data, error: error?.message || null };
     } else if (type === "list") {
       const { data, error } = await supabase.from("lists").select("*, profiles(*)").eq("id", decodedId).single();
@@ -567,7 +668,7 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
         {["work", "movie", "tv", "track", "album", "book"].includes(type) && <WorkView data={data as Work} />}
         {type === 'post' && <PostLayout data={data as Post} />}
         {type === 'profile' && <ProfileView data={data as Profile} />}
-        {type === 'artist' && <ArtistLayout data={data as Artist} />}
+        {type === 'artist' && <ArtistView data={data as Artist} />}
         {type === 'list' && <ListLayout data={data as List} />}
       </main>
 
@@ -612,21 +713,6 @@ function PostLayout({ data }: { data: Post }) {
       </div>
     </div>
   );
-}
-
-function ArtistLayout({ data }: { data: { name: string; profile_path?: string; biography?: string } }) {
-    const imageUrl = data.profile_path ? `https://image.tmdb.org/t/p/w500${data.profile_path}` : '/icons/default_profile.jpg';
-    return (
-      <div className="flex flex-col items-center py-10">
-        <img src={imageUrl} className="w-40 h-40 rounded-full object-cover mb-8 border-4 border-white ring-1 ring-gray-100" alt={data.name || "artist"} />
-        <h2 className="text-2xl font-black mb-8">{data.name}</h2>
-        {data.biography && (
-          <div className="w-full text-left bg-gray-50/70 p-7 rounded-[28px] text-gray-700 leading-relaxed tracking-tight whitespace-pre-wrap text-[15px] px-4">
-            {data.biography}
-          </div>
-        )}
-      </div>
-    );
 }
 
 function ListLayout({ data }: { data: List }) {

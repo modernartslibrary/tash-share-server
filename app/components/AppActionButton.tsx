@@ -4,7 +4,8 @@ export default function AppActionButton({ type, id }: { type: string, id: string
   const handleOpenApp = () => {
     // GoRouter에서 Path 매칭이 정상적으로 되도록 스킴 뒤에 슬래시를 하나만 사용합니다.
     // (io.supabase.tash://profile/... 는 'profile'이 host로 인식되어 매칭 실패)
-    const mappedType = type === 'user' ? 'profile' : type;
+    const workTypes = ['movie', 'tv', 'track', 'album', 'book'];
+    const mappedType = type === 'user' ? 'profile' : (workTypes.includes(type) ? 'work' : type);
     const deepLink = `io.supabase.tash:/${mappedType}/${id}`;
 
     // 플랫폼별 스토어 주소 (TASH 앱 정보)

@@ -88,6 +88,7 @@ export interface Artist {
   name: string;
   profile_path?: string;
   biography?: string;
+  initial_works?: Work[];
 }
 
 export type TASHData = Work | Profile | Post | List | Artist;

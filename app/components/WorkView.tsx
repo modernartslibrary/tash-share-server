@@ -55,12 +55,12 @@ function MovieLayout({ data }: { data: Work }) {
         </div>
 
         <div className="flex flex-col gap-0 mt-2">
-          <p className="text-[12px] text-gray-400 font-medium tracking-tight">
+          <p className="text-[12px] text-gray-400 font-normal tracking-tight">
             {getCategoryLabel(data.work_type)} · {data.artist_name}{data.work_year ? `, ${data.work_year}` : ''}
           </p>
-          <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
-            {data.production_countries && data.production_countries.length > 0 
-              ? data.production_countries.map(c => getCountryName(c)).join(', ') 
+          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
+            {data.production_countries && data.production_countries.length > 0
+              ? data.production_countries.map(c => getCountryName(c)).join(', ')
               : ''}
             {data.production_countries?.length && data.genres?.length ? ' · ' : ''}
             {data.genres?.join(', ')}
@@ -131,10 +131,10 @@ function AlbumLayout({ data }: { data: Work }) {
           </h1>
         </div>
         <div className="flex flex-col">
-          <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none mb-1">
+          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none mb-1">
             앨범 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
-          <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
+          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
             {data.genres?.join(', ')}
           </p>
         </div>
@@ -157,8 +157,8 @@ function AlbumLayout({ data }: { data: Work }) {
           </div>
           <div className="flex flex-col">
             {data.tracks_cache.map((track) => (
-              <Link 
-                key={track.id} 
+              <Link
+                key={track.id}
                 href={`/work/${track.id.includes(':') ? track.id.split(':').pop() : track.id}`}
                 className="flex items-start py-2 gap-2"
               >
@@ -166,15 +166,9 @@ function AlbumLayout({ data }: { data: Work }) {
                   <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
                   <div className="flex flex-col flex-1 pl-1 min-w-0">
                     <span className="text-[14px] font-normal text-black line-clamp-1 tracking-tighter">{track.name}</span>
-                    <span className="text-[11px] text-gray-400 truncate tracking-tighter">
-                      {track.artists.map(a => a.name).join(', ')}
-                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
-                  {track.duration_ms && (
-                    <span className="text-[11px] text-gray-300">{formatDuration(track.duration_ms)}</span>
-                  )}
                   <img
                     src="/icons/backIcon_right.png"
                     className="w-[10px] h-[10px] object-contain"
@@ -239,7 +233,7 @@ function TrackLayout({ data }: { data: Work }) {
           </h1>
         </div>
         <div className="flex flex-col">
-          <p className="text-[12px] text-gray-400 font-medium tracking-tight leading-none">
+          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
             곡 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
         </div>
@@ -257,7 +251,7 @@ function TrackLayout({ data }: { data: Work }) {
       {/* Album Info */}
       {data.parent_album_cache && (
         <div className="px-5 mb-8">
-          <Link 
+          <Link
             href={`/work/${data.parent_album_cache.id}`}
             className="flex items-center transition-colors"
           >
@@ -318,7 +312,7 @@ function BookLayout({ data }: { data: Work }) {
         <h1 className="text-[26px] font-black text-black leading-[1.2] mb-2 tracking-tighter">
           {data.work_title}
         </h1>
-        <p className="text-[12px] text-gray-400 font-medium tracking-tight">
+        <p className="text-[12px] text-gray-400 font-normal tracking-tight">
           {getCategoryLabel(data.work_type)} · {data.artist_name}, {data.work_year}
         </p>
       </div>
