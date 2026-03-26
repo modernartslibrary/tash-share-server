@@ -5,11 +5,16 @@ import React from 'react';
 import Link from 'next/link';
 import { Work, Credit, Track } from '../types';
 
+/**
+ * 작품 상세 보기 컴포넌트
+ * 영화, TV, 앨범, 곡, 책 등 각 미디어 타입에 맞는 레이아웃을 렌더링합니다.
+ */
 interface WorkViewProps {
   data: Work;
 }
 
 export default function WorkView({ data }: WorkViewProps) {
+  // 미디어 타입(work_type)에 따라 적절한 레이아웃을 선택합니다.
   switch (data.work_type?.toLowerCase()) {
     case 'movie':
     case 'tv':
@@ -28,7 +33,7 @@ export default function WorkView({ data }: WorkViewProps) {
 function MovieLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
-      {/* Poster */}
+      {/* 1. 포스터 영역 */}
       <div className="flex justify-center pt-8 pb-6 px-6">
         <div className="w-[190px] aspect-[2/3] relative overflow-hidden border border-gray-100">
           <img
@@ -39,7 +44,7 @@ function MovieLayout({ data }: { data: Work }) {
         </div>
       </div>
 
-      {/* Main Info */}
+      {/* 2. 메인 정보 (제목, 별점, 요약) */}
       <div className="px-5 mb-4">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tighter">
@@ -70,7 +75,7 @@ function MovieLayout({ data }: { data: Work }) {
         </div>
       </div>
 
-      {/* Overview */}
+      {/* 3. 줄거리 (Overview) */}
       {data.biography && data.work_type !== "track" && (
         <div className="px-5 mb-8">
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
@@ -79,25 +84,31 @@ function MovieLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Credits */}
+      {/* 4. 크레딧 (배우, 감독 등 인물 정보) */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {data.credits.map((credit) => (
-              <div key={credit.id} className="flex items-center gap-2">
+              <Link 
+                key={credit.id} 
+                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
+                className="flex items-center gap-2 group"
+              >
+                {/* 인물 프로필 이미지 */}
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
+                {/* 이름 및 역할 설명 */}
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate">{credit.name}</span>
+                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -181,25 +192,29 @@ function AlbumLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Credits for Music */}
+      {/* 4. 크레딧 (아티스트 정보) */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {data.credits.map((credit) => (
-              <div key={credit.id} className="flex items-center gap-2">
+              <Link 
+                key={credit.id} 
+                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
+                className="flex items-center gap-2 group"
+              >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate">{credit.name}</span>
+                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -266,25 +281,29 @@ function TrackLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Credits */}
+      {/* 3. 크레딧 (참여한 아티스트 정보) */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {data.credits.map((credit) => (
-              <div key={credit.id} className="flex items-center gap-2">
+              <Link 
+                key={credit.id} 
+                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
+                className="flex items-center gap-2 group"
+              >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate">{credit.name}</span>
+                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -326,25 +345,29 @@ function BookLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Credits */}
+      {/* 3. 크레딧 (저자 및 관련 인물 정보) */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {data.credits.map((credit) => (
-              <div key={credit.id} className="flex items-center gap-2">
+              <Link 
+                key={credit.id} 
+                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
+                className="flex items-center gap-2 group"
+              >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate">{credit.name}</span>
+                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -366,6 +389,9 @@ function DefaultLayout({ data }: { data: Work }) {
 }
 
 // Helpers
+/**
+ * 작품 타입별 한글 라벨 반환
+ */
 function getCategoryLabel(type: string) {
   switch (type) {
     case 'movie': return '영화';
@@ -377,6 +403,9 @@ function getCategoryLabel(type: string) {
   }
 }
 
+/**
+ * 역할 코드 -> 한글 역할명 변환 (감독, 작가, 배우 등)
+ */
 function getRoleLabel(role: string | null | undefined, characterName?: string) {
   if (!role) return characterName || '';
   const roleLower = role.toLowerCase();
@@ -408,6 +437,9 @@ function formatDuration(ms: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+/**
+ * 러닝타임 포맷팅 (예: 125 -> 2시간 5분)
+ */
 function formatRuntime(minutes: number | null | undefined) {
   if (!minutes) return '';
   const h = Math.floor(minutes / 60);
@@ -416,6 +448,9 @@ function formatRuntime(minutes: number | null | undefined) {
   return `${m}분`;
 }
 
+/**
+ * 국가 코드 -> 한글 국가명 변환
+ */
 function getCountryName(country: string) {
   if (!country) return '';
   const mapping: Record<string, string> = {

@@ -18,6 +18,66 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function hasVisibleCreditThumbnail(credits?: Credit[] | null): boolean {
+  return !!credits?.some((credit) => !!credit.profile_path?.trim());
+}
+
+function mergeCreditsPreferProfiles(
+  primaryCredits: Credit[] = [],
+  fallbackCredits: Credit[] = [],
+): Credit[] {
+  const merged = new Map<string, Credit>();
+
+  const normalizeId = (id: string) => id.includes(':') ? id.split(':').pop() || id : id;
+
+  const makeKey = (credit: Credit) =>
+    `${(credit.role || '').toLowerCase()}:${normalizeId(credit.id || '').toLowerCase()}:${(credit.name || '').toLowerCase()}`;
+
+  primaryCredits.forEach((credit) => {
+    merged.set(makeKey(credit), { ...credit });
+  });
+
+  fallbackCredits.forEach((credit) => {
+    const key = makeKey(credit);
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, { ...credit });
+      return;
+    }
+
+    if (!existing.profile_path && credit.profile_path) {
+      merged.set(key, {
+        ...existing,
+        profile_path: credit.profile_path,
+      });
+    }
+  });
+
+  return Array.from(merged.values());
+}
+
+function mergeWorkCreditsFromFallback(primaryWork: Work, fallbackWork: Work): Work {
+  const mergedCredits = mergeCreditsPreferProfiles(
+    primaryWork.credits || [],
+    fallbackWork.credits || [],
+  );
+
+  return {
+    ...fallbackWork,
+    ...primaryWork,
+    credits: mergedCredits,
+    tracks_cache: primaryWork.tracks_cache?.length
+      ? primaryWork.tracks_cache
+      : fallbackWork.tracks_cache,
+    parent_album_cache: primaryWork.parent_album_cache || fallbackWork.parent_album_cache,
+    biography: primaryWork.biography || fallbackWork.biography,
+    display_artist_name: primaryWork.display_artist_name || fallbackWork.display_artist_name,
+    artist_name: primaryWork.artist_name || fallbackWork.artist_name,
+    image_url: primaryWork.image_url || fallbackWork.image_url,
+  };
+}
+
 async function enrichWorkData(workData: any): Promise<Work> {
   // Fetch Ratings and Credits in parallel
   const [postsRes, waRes] = await Promise.all([
@@ -146,11 +206,12 @@ async function fetchFallbackMetadata(type: string, id: string): Promise<Work | n
     // [BFF 통합] 트랙의 부모 앨범 필드 매핑 보강
     // ensure-work-exists는 'title', 'poster_path'를 사용함
     if (workData.parent_album && !workData.parent_album_cache) {
+      const p = workData.parent_album;
       workData.parent_album_cache = {
-        id: workData.parent_album.id,
-        title: workData.parent_album.title || workData.parent_album.work_title,
-        poster_path: workData.parent_album.poster_path || workData.parent_album.image_url,
-        artist_names_display: workData.parent_album.artist_names_display || workData.parent_album.artist_name || workData.parent_album.display_artist_name
+        id: p.id?.includes(':') ? p.id : `music:album:${p.id}`,
+        title: p.title || p.work_title || 'Unknown Album',
+        poster_path: p.poster_path || p.image_url || '',
+        artist_names_display: p.artist_names_display || p.artist_name || p.display_artist_name || ''
       };
     }
 
@@ -300,7 +361,7 @@ async function fetchArtistFallback(id: string): Promise<Artist | null> {
     if (!artistData) return null;
 
     // 2. Persist to DB via ensure-artist-exists
-    await fetch(`${SUPABASE_URL}/functions/v1/ensure-artist-exists`, {
+    const syncRes = await fetch(`${SUPABASE_URL}/functions/v1/ensure-artist-exists`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json', 
@@ -309,6 +370,12 @@ async function fetchArtistFallback(id: string): Promise<Artist | null> {
       },
       body: JSON.stringify(artistData)
     });
+
+    if (syncRes.ok) {
+      const result = await syncRes.json();
+      // Use the returned data which may contain Gemini-translated biography
+      return (result.data || result) as Artist;
+    }
 
     return artistData as Artist;
   } catch (err) {
@@ -344,6 +411,11 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
           // rare legacy case: work:type:id
           effectiveType = idParts[1];
         }
+      } else if (type === 'work' && !decodedId.includes(':') && /^[a-zA-Z0-9]{22}$/.test(decodedId)) {
+        // [수정] 22자리 영문숫자 조합(Spotify ID 패턴)이면서 타입 정보가 없는 경우, 기본적으로 'album'으로 간주합니다.
+        // 트랙 -> 앨범 이동 시 raw ID가 전달되는 경우에 대한 대응입니다.
+        effectiveType = 'album';
+        console.log(`[fetchContent] Inferred type "album" from raw Spotify ID pattern`);
       }
 
       const suffixId = decodedId.includes(':') ? decodedId.split(':').pop() || "" : decodedId;
@@ -443,6 +515,36 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
           const enriched = await assembleEnriched(parentAlbum, postsRes.data, waRes.data);
           
+          // [수정] 트랙 아티스트 사진 보충 로직:
+          // 만약 트랙 아티스트의 사진이 없다면, 부모 앨범의 크레딧 정보에서 동일한 아티스트를 찾아 사진을 빌려옵니다.
+          if (trackCredits.length > 0 && enriched.credits && enriched.credits.length > 0) {
+            trackCredits.forEach((c: any) => {
+              if (!c.profile_path) {
+                const albumMatch = enriched.credits.find((ac: any) => 
+                  ac.id === c.id || ac.name === c.name || ac.id?.endsWith(':' + c.id)
+                );
+                if (albumMatch && albumMatch.profile_path) {
+                  c.profile_path = albumMatch.profile_path;
+                  console.log(`[fetchContent] Borrowed photo for track artist "${c.name}" from album credits`);
+                }
+              }
+            });
+          }
+
+          let finalTrackCredits = trackCredits.length > 0 ? trackCredits : (enriched.credits || []);
+
+          // 의도: 음악 트랙이 DB에 최소 정보만 저장된 상태라면
+          // fallback 응답의 아티스트 사진만 가져와 썸네일을 보강합니다.
+          if (!hasVisibleCreditThumbnail(finalTrackCredits)) {
+            const fallbackTrackData = await fetchFallbackMetadata('track', resolvedId);
+            if (fallbackTrackData?.credits?.length) {
+              finalTrackCredits = mergeCreditsPreferProfiles(
+                finalTrackCredits,
+                fallbackTrackData.credits,
+              );
+            }
+          }
+
           return {
             data: {
               id: resolvedId,
@@ -453,14 +555,14 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
               work_year: parentAlbum?.work_year || dbWork?.work_year,
               genres: parentAlbum?.genres || dbWork?.genres,
               parent_album_cache: parentAlbum ? {
-                id: parentAlbum.id,
+                id: parentAlbum.id?.includes(':') ? parentAlbum.id : `music:album:${parentAlbum.id}`,
                 title: parentAlbum.work_title || parentAlbum.title,
                 poster_path: parentAlbum.image_url || parentAlbum.poster_path,
                 artist_names_display: parentAlbum.artist_name || parentAlbum.display_artist_name || parentAlbum.artist_names_display
               } : dbWork?.parent_album_cache,
               rating_avg: enriched.rating_avg || 0,
               rating_count: enriched.rating_count || 0,
-              credits: trackCredits.length > 0 ? trackCredits : enriched.credits,
+              credits: finalTrackCredits,
               biography: null
             } as any,
             error: null
@@ -472,10 +574,26 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       if (dbWork) {
         console.log(`[fetchContent] Resolved to DB work: ${dbWork.id}`);
         const enriched = await assembleEnriched(dbWork, postsRes.data, waRes.data);
+        const needsMusicCreditPhotoFallback =
+          (effectiveType === 'album' || effectiveType === 'track') &&
+          !!enriched.credits?.length &&
+          !hasVisibleCreditThumbnail(enriched.credits);
         
-        // If credits are empty for non-book works, try API fallback as a last resort
-        if ((!enriched.credits || enriched.credits.length === 0) && effectiveType !== 'book') {
-          console.log(`[fetchContent] Credits empty for ${dbWork.id}, attempting API fallback...`);
+        // 의도: 음악은 크레딧이 비어 있지 않아도 사진이 모두 null이면 fallback이 필요합니다.
+        if (
+          effectiveType !== 'book' &&
+          ((!enriched.credits || enriched.credits.length === 0) || needsMusicCreditPhotoFallback)
+        ) {
+          console.log(
+            `[fetchContent] Credits incomplete for ${dbWork.id}, attempting API fallback...`,
+          );
+          const fallbackData = await fetchFallbackMetadata(effectiveType, decodedId);
+          if (fallbackData) {
+            return {
+              data: mergeWorkCreditsFromFallback(enriched as Work, fallbackData),
+              error: null,
+            };
+          }
         } else {
           return { data: enriched, error: null };
         }
@@ -546,10 +664,13 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
         .limit(1)
         .maybeSingle();
 
-      // Fallback: If not in DB, sync from external APIs
-      if (!data && !error) {
-        console.log(`[fetchContent] Artist not found in DB, attempting fallback sync...`);
-        data = await fetchArtistFallback(decodedId);
+      // Fallback: If not in DB OR biography missing, sync from external APIs
+      if ((!data || !data.biography || data.biography.trim() === '') && !error) {
+        console.log(`[fetchContent] Artist or Bio not found in DB, attempting fallback sync...`);
+        const fallbackData = await fetchArtistFallback(decodedId);
+        if (fallbackData) {
+          data = fallbackData;
+        }
       }
 
       if (data) {
