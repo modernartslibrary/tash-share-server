@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Artist, Work } from '../types';
 
 interface ArtistViewProps {
@@ -16,14 +15,15 @@ export default function ArtistView({ data }: ArtistViewProps) {
   return (
     <div className="flex flex-col bg-white">
       {/* Hero Header */}
-      <div className="relative w-full aspect-square overflow-hidden mb-6">
+      {/* Hero Header */}
+      <div className="relative w-full sm:max-w-[450px] sm:mx-auto aspect-square overflow-hidden mb-6">
         <img
           src={imageUrl}
           className="w-full h-full object-cover"
           alt={data.name}
         />
         {/* Subtle Gradient Overlay for Premium Feel */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
       </div>
 
       {/* Name Section */}
@@ -48,16 +48,15 @@ export default function ArtistView({ data }: ArtistViewProps) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[20px] font-bold text-black tracking-tight">작품들</h3>
           </div>
-          <div className="grid grid-cols-3 gap-x-3 gap-y-0" style={{ rowGap: '0px' }}>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-3 gap-y-0" style={{ rowGap: '0px' }}>
             {data.initial_works.map((work) => (
-              <Link
+              <div
                 key={work.id}
-                href={`/${work.work_type}/${work.id.includes(':') ? work.id.split(':').pop() : work.id}`}
-                className="flex flex-col group"
+                className="flex flex-col group link-trigger cursor-pointer"
                 style={{ marginBottom: '12px' }}
               >
                 <div
-                  className="aspect-square relative overflow-hidden rounded-[4px] border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
+                  className="aspect-square relative overflow-hidden rounded-[4px] border border-gray-100/50 mb-2.5 transition-transform active:scale-95 pointer-events-none"
                   style={{ aspectRatio: '1 / 1' }}
                 >
                   <img
@@ -66,13 +65,13 @@ export default function ArtistView({ data }: ArtistViewProps) {
                     alt={work.work_title}
                   />
                 </div>
-                <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter">
+                <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter pointer-events-none">
                   {work.work_title}
                 </div>
-                <div className="text-[11px] text-gray-400 mt-0 font-light" style={{ marginTop: '4px' }}>
+                <div className="text-[11px] text-gray-400 mt-0 font-light pointer-events-none" style={{ marginTop: '4px' }}>
                   {work.work_year}
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>

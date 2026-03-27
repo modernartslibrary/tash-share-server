@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { Post, List, Profile } from '../types';
-import AppActionButton from './AppActionButton';
 
 interface ProfileViewProps {
   data: Profile;
@@ -10,6 +9,7 @@ interface ProfileViewProps {
 
 export default function ProfileView({ data }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<'posts' | 'lists' | 'archives'>('posts');
+  // ... (rest of the component up to line 135)
   const [activeFilter, setActiveFilter] = useState<string>(''); // Empty string means 'All'
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
 
@@ -136,9 +136,6 @@ export default function ProfileView({ data }: ProfileViewProps) {
       <div className="flex flex-col min-h-[400px]">
         {renderContent()}
       </div>
-
-      {/* Sticky Bottom CTA */}
-      <AppActionButton type="profile" id={data.id} />
     </div>
   );
 }
@@ -165,11 +162,11 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
 
 const PostGrid = ({ posts }: { posts: Post[] }) => (
   <div className="grid grid-cols-3 gap-0">
-    {posts.map((post) => (
-      <div key={post.id} className="aspect-square bg-white relative overflow-hidden group">
+    {(posts || []).map((post) => (
+      <div key={post.id} className="aspect-square bg-white relative overflow-hidden group link-trigger cursor-pointer active:opacity-80 transition-opacity">
         <img
           src={post.works?.image_url || '/icons/default_profile.jpg'}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
           alt={post.works?.work_title || "post thumbnail"}
         />
       </div>
@@ -179,9 +176,9 @@ const PostGrid = ({ posts }: { posts: Post[] }) => (
 
 const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) => (
   <div className="flex flex-col bg-white">
-    {posts.map((post) => (
-      <div key={post.id} className={`${hideStats ? 'py-0' : 'py-2'} px-[16px]`}>
-        <div className="flex items-center mb-0.5 relative">
+    {(posts || []).map((post) => (
+      <div key={post.id} className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] link-trigger cursor-pointer active:bg-gray-50 transition-colors`}>
+        <div className="flex items-center mb-0.5 relative pointer-events-none">
           <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
             <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
           </div>
@@ -201,7 +198,7 @@ const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) 
           </div>
         </div>
 
-        <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
+        <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap pointer-events-none">
           {post.content}
         </p>
 
@@ -260,14 +257,14 @@ const ListSection = ({ lists }: { lists: List[] }) => {
 
   return (
     <div className="flex flex-col px-5 gap-0 pt-0.5">
-      {lists.map((list) => (
-        <div key={list.id} className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors">
+      {(lists || []).map((list) => (
+        <div key={list.id} className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors link-trigger cursor-pointer">
           <img
             src={list.cover_url || '/icons/default_profile.jpg'}
-            className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
+            className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100 pointer-events-none"
             alt={list.title || "list cover"}
           />
-          <div className="flex flex-col">
+          <div className="flex flex-col pointer-events-none">
             <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
             <p className="text-[11px] text-gray-400 font-normal">{formatWorkCount(list.work_counts)}</p>
           </div>

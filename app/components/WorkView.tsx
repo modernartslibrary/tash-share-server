@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Work, Credit, Track } from '../types';
 
 /**
@@ -34,8 +33,8 @@ function MovieLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
       {/* 1. 포스터 영역 */}
-      <div className="flex justify-center pt-8 pb-6 px-6">
-        <div className="w-[190px] aspect-[2/3] relative overflow-hidden border border-gray-100">
+      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-16">
+        <div className="w-[190px] sm:w-[240px] aspect-[2/3] relative overflow-hidden border border-gray-100">
           <img
             src={data.image_url}
             className="w-full h-full object-cover"
@@ -89,14 +88,13 @@ function MovieLayout({ data }: { data: Work }) {
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {data.credits.map((credit) => (
-              <Link 
-                key={credit.id} 
-                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
-                className="flex items-center gap-2 group"
+            {(data.credits || []).map((credit, idx) => (
+              <div 
+                key={credit.id || `credit-${idx}`} 
+                className="flex items-center gap-2 group link-trigger cursor-pointer"
               >
                 {/* 인물 프로필 이미지 */}
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -104,11 +102,11 @@ function MovieLayout({ data }: { data: Work }) {
                   />
                 </div>
                 {/* 이름 및 역할 설명 */}
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 pointer-events-none">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -123,7 +121,7 @@ function AlbumLayout({ data }: { data: Work }) {
       {/* Cover */}
       <div className="flex justify-center pt-8 pb-6 px-6">
         <div
-          className="aspect-square relative overflow-hidden border border-gray-100"
+          className="aspect-square relative overflow-hidden border border-gray-100 mx-auto"
           style={{ width: '260px', height: '260px' }}
         >
           <img
@@ -167,26 +165,25 @@ function AlbumLayout({ data }: { data: Work }) {
             <h3 className="text-[14px] font-normal text-black">트랙 리스트</h3>
           </div>
           <div className="flex flex-col">
-            {data.tracks_cache.map((track) => (
-              <Link
+            {(data.tracks_cache || []).map((track) => (
+              <div
                 key={track.id}
-                href={`/work/${track.id.includes(':') ? track.id.split(':').pop() : track.id}`}
-                className="flex items-start py-2 gap-2"
+                className="flex items-start py-2 gap-2 link-trigger cursor-pointer"
               >
-                <div className="flex items-start gap-2 flex-1 min-w-0">
+                <div className="flex items-start gap-2 flex-1 min-w-0 pointer-events-none">
                   <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
                   <div className="flex flex-col flex-1 pl-1 min-w-0">
                     <span className="text-[14px] font-normal text-black line-clamp-1 tracking-tighter">{track.name}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
+                <div className="flex items-center gap-2 flex-shrink-0 pt-[2px] pointer-events-none">
                   <img
                     src="/icons/backIcon_right.png"
                     className="w-[10px] h-[10px] object-contain"
                     alt="arrow"
                   />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -197,24 +194,23 @@ function AlbumLayout({ data }: { data: Work }) {
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {data.credits.map((credit) => (
-              <Link 
-                key={credit.id} 
-                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
-                className="flex items-center gap-2 group"
+            {(data.credits || []).map((credit, idx) => (
+              <div 
+                key={credit.id || `credit-${idx}`} 
+                className="flex items-center gap-2 group link-trigger cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 pointer-events-none">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -266,18 +262,17 @@ function TrackLayout({ data }: { data: Work }) {
       {/* Album Info */}
       {data.parent_album_cache && (
         <div className="px-5 mb-8">
-          <Link
-            href={`/work/${data.parent_album_cache.id}`}
-            className="flex items-center transition-colors"
+          <div
+            className="flex items-center transition-colors link-trigger cursor-pointer"
           >
-            <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
+            <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0 pointer-events-none">
               <img src={data.parent_album_cache.poster_path} className="w-full h-full object-cover" alt="album cover" />
             </div>
-            <div className="flex flex-col pl-4 min-w-0">
+            <div className="flex flex-col pl-4 min-w-0 pointer-events-none">
               <span className="text-[15px] font-normal text-black truncate tracking-tight">{data.parent_album_cache.title}</span>
               <span className="text-[12px] text-gray-500 truncate tracking-tight">{data.parent_album_cache.artist_names_display}</span>
             </div>
-          </Link>
+          </div>
         </div>
       )}
 
@@ -286,24 +281,23 @@ function TrackLayout({ data }: { data: Work }) {
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {data.credits.map((credit) => (
-              <Link 
-                key={credit.id} 
-                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
-                className="flex items-center gap-2 group"
+            {(data.credits || []).map((credit, idx) => (
+              <div 
+                key={credit.id || `credit-${idx}`} 
+                className="flex items-center gap-2 group link-trigger cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 pointer-events-none">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -350,24 +344,23 @@ function BookLayout({ data }: { data: Work }) {
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {data.credits.map((credit) => (
-              <Link 
-                key={credit.id} 
-                href={`/artist/${credit.id.includes(':') ? credit.id.split(':').pop() : credit.id}`}
-                className="flex items-center gap-2 group"
+            {(data.credits || []).map((credit, idx) => (
+              <div 
+                key={credit.id || `credit-${idx}`} 
+                className="flex items-center gap-2 group link-trigger cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 pointer-events-none">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>

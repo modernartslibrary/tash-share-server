@@ -58,6 +58,18 @@ export interface Profile {
   initial_archives?: Post[];
 }
 
+export interface TASHComment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  parent_id?: string;
+  likes_count: number;
+  profiles?: Profile;
+  replies?: TASHComment[];
+}
+
 export interface Post {
   id: string;
   content: string;
@@ -69,6 +81,7 @@ export interface Post {
   works?: Work;
   profiles?: Profile;
   image_url?: string;
+  comments?: TASHComment[];
 }
 
 export interface List {
