@@ -43,18 +43,18 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
       body: JSON.stringify({ type, id: decodedId }),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[fetchContent] API Error: ${response.status}`, errText);
-      return { data: null, error: `API Error: ${response.status}` };
+    let data = null;
+    if (response.ok) {
+        const result = await response.json();
+        data = result.data || result;
+    } else {
+        const errText = await response.text();
+        console.warn(`[fetchContent] Edge Function returned error ${response.status}:`, errText);
     }
-
-    const result = await response.json();
-    let data = result.data || result;
 
     // 폴백: Edge Function이 댓글을 반환하지 않는 경우 (미배포 등), 서버 사이드에서 직접 조회
     if (type === 'post' && data && !data.comments) {
-      console.log(`[fetchContent] Edge Function missing comments, falling back to direct DB query`);
+      console.log(`[fetchContent] Post missing comments, falling back to direct DB query`);
       const { data: directComments } = await supabase
         .from("post_comments")
         .select("*, profiles(*)")
@@ -77,6 +77,35 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
           }
         });
         data.comments = rootComments;
+      }
+    }
+
+    // 폴백: Edge Function이 프로필 정보를 반환하지 않는 경우 (UUID 정규식 오류 등), 서버 사이드에서 직접 조회
+    if (type === 'profile' && (!data || !data.username)) {
+      console.log(`[fetchContent] Profile failed, falling back to direct DB query: ${id}`);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let query = supabase.from("profiles").select("*");
+      if (isUUID) query = query.eq("id", id);
+      else {
+        const cleanUsername = id.startsWith('@') ? id.substring(1) : id;
+        query = query.ilike("username", cleanUsername);
+      }
+      
+      const { data: directProfile } = await query.single();
+      if (directProfile) {
+        // 초기 데이터(포스트 등) 병렬 로드
+        const [posts, lists, archives] = await Promise.all([
+          supabase.from("posts").select("*, works(image_url, work_type, work_title, artist_name, work_year)").eq("user_id", directProfile.id).order("created_at", { ascending: false }).limit(12),
+          supabase.rpc("get_user_lists", { p_user_id: directProfile.id, p_limit: 6, p_offset: 0 }),
+          supabase.from("work_likes").select("*, works(image_url, work_type, work_title, artist_name, work_year)").eq("user_id", directProfile.id).order("created_at", { ascending: false }).limit(12)
+        ]);
+
+        data = {
+          ...directProfile,
+          initial_posts: posts.data || [],
+          initial_lists: lists.data || [],
+          initial_archives: archives.data || []
+        };
       }
     }
 
