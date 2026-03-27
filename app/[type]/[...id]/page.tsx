@@ -288,7 +288,7 @@ function PostLayout({ data }: { data: Post }) {
       </div>
 
       {/* Content Section */}
-      <div className="text-[16px] leading-[1.0] whitespace-pre-wrap text-[#1A1A1A] px-5 mb-2 tracking-[-0.04em]">
+      <div className="text-[16px] leading-[1.0] whitespace-pre-wrap text-[#1A1A1A] px-5 mb-2 tracking-[-0.03em]">
         {data.content}
       </div>
 
