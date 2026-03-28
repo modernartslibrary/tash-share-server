@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Post, List, Profile } from '../types';
 
 interface ProfileViewProps {
@@ -9,10 +10,60 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ data }: ProfileViewProps) {
-  const [activeTab, setActiveTab] = useState<'posts' | 'lists' | 'archives'>('posts');
-  // ... (rest of the component up to line 135)
-  const [activeFilter, setActiveFilter] = useState<string>(''); // Empty string means 'All'
-  const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
+  const searchParams = useSearchParams();
+
+  // URL 파라미터에서 초기 상태 읽기
+  const [activeTab, setActiveTab] = useState<'posts' | 'lists' | 'archives'>(
+    () => (searchParams.get('tab') as any) || 'posts'
+  );
+  const [activeFilter, setActiveFilter] = useState(() => searchParams.get('filter') || '');
+  const [postsView, setPostsView] = useState<'grid' | 'list'>(
+    () => (searchParams.get('posts_view') as any) || 'grid'
+  );
+  const [archivesView, setArchivesView] = useState<'grid' | 'list'>(
+    () => (searchParams.get('archives_view') as any) || 'grid'
+  );
+
+  const viewType = activeTab === 'archives' ? archivesView : postsView;
+
+  // URL 파라미터 동기화 헬퍼 (history.replaceState 사용으로 라우터 재랜더링 방지)
+  const syncParams = (newParams: Record<string, string | null>) => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', newUrl);
+  };
+
+  const handleTabChange = (tab: 'posts' | 'lists' | 'archives') => {
+    setActiveTab(tab);
+    setActiveFilter(''); // 탭 전환 시 필터 초기화
+    syncParams({ tab, filter: null });
+  };
+
+  const handleFilterChange = (filter: string) => {
+    const newValue = filter === activeFilter ? '' : filter;
+    setActiveFilter(newValue);
+    syncParams({ filter: newValue === '' ? null : newValue });
+  };
+
+  const handleViewTypeChange = (view: 'grid' | 'list') => {
+    if (activeTab === 'archives') {
+      setArchivesView(view);
+      syncParams({ archives_view: view });
+    } else {
+      setPostsView(view);
+      syncParams({ posts_view: view });
+    }
+  };
 
   // Mappings for filtering by work_type
   const filterMap: Record<string, string[]> = useMemo(() => ({
@@ -32,10 +83,13 @@ export default function ProfileView({ data }: ProfileViewProps) {
 
   const filteredArchives = useMemo(() => {
     if (!data.initial_archives) return [];
-    if (!activeFilter) return data.initial_archives;
-    return data.initial_archives.filter((archive: Post) =>
-      filterMap[activeFilter]?.includes(archive.works?.work_type || '')
-    );
+    if (activeFilter === '인물') {
+      return data.initial_archives.filter(a => a.item_type === 'artist');
+    }
+    return data.initial_archives.filter((archive) => {
+      if (archive.item_type === 'artist') return !activeFilter; // 전체(필터 없음)일 때만 포함
+      return !activeFilter || filterMap[activeFilter]?.includes(archive.works?.work_type || '');
+    });
   }, [data.initial_archives, activeFilter, filterMap]);
 
   const renderContent = () => {
@@ -84,17 +138,17 @@ export default function ProfileView({ data }: ProfileViewProps) {
         <TabIcon
           icon="/icons/tab_posts.png"
           active={activeTab === 'posts'}
-          onClick={() => setActiveTab('posts')}
+          onClick={() => handleTabChange('posts')}
         />
         <TabIcon
           icon="/icons/tab_lists.png"
           active={activeTab === 'lists'}
-          onClick={() => setActiveTab('lists')}
+          onClick={() => handleTabChange('lists')}
         />
         <TabIcon
           icon="/icons/tab_archive.png"
           active={activeTab === 'archives'}
-          onClick={() => setActiveTab('archives')}
+          onClick={() => handleTabChange('archives')}
         />
       </div>
 
@@ -102,12 +156,13 @@ export default function ProfileView({ data }: ProfileViewProps) {
       {activeTab !== 'lists' && (
         <div className="flex items-center px-[16px] py-2 mb-1 overflow-x-auto no-scrollbar gap-1.5">
           <div className="flex gap-1.5">
-            {['음악', '영화', 'TV', '책'].map((filter) => (
+            {(activeTab === 'archives'
+              ? ['음악', '영화', 'TV', '책', '인물']
+              : ['음악', '영화', 'TV', '책']
+            ).map((filter) => (
               <button
                 key={filter}
-                onClick={() => {
-                  setActiveFilter((prev: string) => prev === filter ? '' : filter);
-                }}
+                onClick={() => handleFilterChange(filter)}
                 className={`h-[30px] px-4 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
                   ? 'bg-black border-black text-white'
                   : 'bg-white border-black text-black'
@@ -123,7 +178,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
           <div className="flex items-center pl-2">
             <button
               className="p-1"
-              onClick={() => setViewType((prev: 'grid' | 'list') => prev === 'grid' ? 'list' : 'grid')}
+              onClick={() => handleViewTypeChange(viewType === 'grid' ? 'list' : 'grid')}
             >
               <img
                 src={viewType === 'grid' ? "/icons/profile_post_list.png" : "/icons/profile_post_grid.png"}
@@ -165,67 +220,93 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
 
 const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) => (
   <div className="grid grid-cols-3 gap-0">
-    {(posts || []).map((post) => (
-      <Link key={post.id} href={isArchive ? `/work/${post.work_id}` : `/post/${post.id}`}>
-        <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
-          <img
-            src={post.works?.image_url || '/icons/default_profile.jpg'}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            alt={post.works?.work_title || "post thumbnail"}
-          />
-        </div>
-      </Link>
-    ))}
+    {(posts || []).map((post) => {
+      const isArtist = post.item_type === 'artist';
+      const href = isArchive
+        ? (isArtist ? `/artist/${post.artist_id}` : `/work/${post.work_id}`)
+        : `/post/${post.id}`;
+      const imageUrl = isArtist
+        ? (post.artist_profile_path
+          ? (post.artist_profile_path.startsWith('http') ? post.artist_profile_path : `https://image.tmdb.org/t/p/w200${post.artist_profile_path}`)
+          : '/icons/default_profile.jpg')
+        : (post.works?.image_url || '/icons/default_profile.jpg');
+
+      return (
+        <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
+          <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
+            <img
+              src={imageUrl}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              alt={isArtist ? (post.artist_name || "artist") : (post.works?.work_title || "post thumbnail")}
+            />
+          </div>
+        </Link>
+      );
+    })}
   </div>
 );
 
 const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: boolean, isArchive?: boolean }) => (
   <div className="flex flex-col bg-white">
-    {(posts || []).map((post) => (
-      <Link key={post.id} href={isArchive ? `/work/${post.work_id}` : `/post/${post.id}`}>
-        <div className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] cursor-pointer active:bg-gray-50 transition-colors`}>
-          <div className="flex items-center mb-0.5 relative">
-            <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
-              <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
+    {(posts || []).map((post) => {
+      const isArtist = post.item_type === 'artist';
+      const href = isArchive
+        ? (isArtist ? `/artist/${post.artist_id}` : `/work/${post.work_id}`)
+        : `/post/${post.id}`;
+      const imageUrl = isArtist
+        ? (post.artist_profile_path
+          ? (post.artist_profile_path.startsWith('http') ? post.artist_profile_path : `https://image.tmdb.org/t/p/w200${post.artist_profile_path}`)
+          : '/icons/default_profile.jpg')
+        : (post.works?.image_url || '/icons/default_profile.jpg');
+
+      return (
+        <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
+          <div className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] cursor-pointer active:bg-gray-50 transition-colors`}>
+            <div className="flex items-center mb-0.5 relative">
+              <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
+                <img src={imageUrl} className="w-full h-full object-cover border border-gray-100" alt={isArtist ? post.artist_name : post.works?.work_title} />
+              </div>
+              <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
+                  {isArtist ? post.artist_name : (post.works?.work_title || "제목 없음")}
+                </h3>
+                <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
+                  {isArtist ? "인물" : (post.works?.work_type || "기타")} {isArtist ? "" : `· ${post.works?.artist_name || "알 수 없음"}, ${post.works?.work_year || ""}`}
+                </p>
+                {!isArtist && post.rating && (
+                  <div className="flex items-center text-black text-[13px] mt-0.5">
+                    <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
+                    <span>{post.rating.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-              <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
-                {post.works?.work_title || "제목 없음"}
-              </h3>
-              <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
-                {post.works?.work_type || "기타"} · {post.works?.artist_name || "알 수 없음"}, {post.works?.work_year || ""}
+
+            {post.content && (
+              <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
+                {post.content}
               </p>
-              {post.rating && (
-                <div className="flex items-center text-black text-[13px] mt-0.5">
-                  <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
-                  <span>{post.rating.toFixed(1)}</span>
+            )}
+
+            {!hideStats && (
+              <div className="flex items-center text-[12px] text-black font-normal">
+                <div className="flex items-center mr-5">
+                  <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
+                  <span className="text-[13px]">{post.likes_count || 0}</span>
                 </div>
-              )}
-            </div>
+                <div className="flex items-center mr-5">
+                  <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
+                  <span className="text-[13px]">{post.comments_count || 0}</span>
+                </div>
+                <div className="ml-auto text-gray-400" suppressHydrationWarning>
+                  {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                </div>
+              </div>
+            )}
           </div>
-
-          <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
-            {post.content}
-          </p>
-
-          {!hideStats && (
-            <div className="flex items-center text-[12px] text-black font-normal">
-              <div className="flex items-center mr-5">
-                <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
-                <span className="text-[13px]">{post.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center mr-5">
-                <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
-                <span className="text-[13px]">{post.comments_count || 0}</span>
-              </div>
-              <div className="ml-auto text-gray-400" suppressHydrationWarning>
-                {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-              </div>
-            </div>
-          )}
-        </div>
-      </Link>
-    ))}
+        </Link>
+      );
+    })}
   </div>
 );
 

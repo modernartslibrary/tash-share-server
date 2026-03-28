@@ -82,6 +82,10 @@ export interface Post {
   profiles?: Profile;
   image_url?: string;
   work_id?: string; // 아카이브 아이템(work_likes) 대응을 위한 필드 추가
+  item_type?: 'work' | 'artist';
+  artist_id?: string;
+  artist_name?: string;
+  artist_profile_path?: string;
   comments?: TASHComment[];
 }
 

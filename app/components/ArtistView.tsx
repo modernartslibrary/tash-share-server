@@ -56,7 +56,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
                 style={{ marginBottom: '12px' }}
               >
                 <div
-                  className="aspect-square relative overflow-hidden rounded-[4px] border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
+                  className="aspect-square relative overflow-hidden border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
                   style={{ aspectRatio: '1 / 1' }}
                 >
                   <img

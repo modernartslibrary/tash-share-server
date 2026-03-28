@@ -14,6 +14,7 @@ export const revalidate = 0;
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -240,7 +241,11 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
     <SharePageClient type={type} id={resolvedId}>
       {["work", "movie", "tv", "track", "album", "book"].includes(type) && <WorkView data={data as Work} />}
       {type === 'post' && <PostView data={data as Post} />}
-      {type === 'profile' && <ProfileView data={data as Profile} />}
+      {type === 'profile' && (
+        <Suspense fallback={null}>
+          <ProfileView data={data as Profile} />
+        </Suspense>
+      )}
       {type === 'artist' && <ArtistView data={data as Artist} />}
       {type === 'list' && <ListView data={data as List} />}
     </SharePageClient>
