@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { Post, List, Profile } from '../types';
 
 interface ProfileViewProps {
@@ -49,9 +50,9 @@ export default function ProfileView({ data }: ProfileViewProps) {
     }
 
     if (viewType === 'grid') {
-      return <PostGrid posts={items} />;
+      return <PostGrid posts={items} isArchive={activeTab === 'archives'} />;
     } else {
-      return <PostList posts={items} hideStats={activeTab === 'archives'} />;
+      return <PostList posts={items} hideStats={activeTab === 'archives'} isArchive={activeTab === 'archives'} />;
     }
   };
 
@@ -104,7 +105,9 @@ export default function ProfileView({ data }: ProfileViewProps) {
             {['음악', '영화', 'TV', '책'].map((filter) => (
               <button
                 key={filter}
-                onClick={() => setActiveFilter((prev: string) => prev === filter ? '' : filter)}
+                onClick={() => {
+                  setActiveFilter((prev: string) => prev === filter ? '' : filter);
+                }}
                 className={`h-[30px] px-4 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
                   ? 'bg-black border-black text-white'
                   : 'bg-white border-black text-black'
@@ -160,64 +163,68 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
   </button>
 );
 
-const PostGrid = ({ posts }: { posts: Post[] }) => (
+const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) => (
   <div className="grid grid-cols-3 gap-0">
     {(posts || []).map((post) => (
-      <div key={post.id} className="aspect-square bg-white relative overflow-hidden group link-trigger cursor-pointer active:opacity-80 transition-opacity">
-        <img
-          src={post.works?.image_url || '/icons/default_profile.jpg'}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
-          alt={post.works?.work_title || "post thumbnail"}
-        />
-      </div>
+      <Link key={post.id} href={isArchive ? `/work/${post.work_id}` : `/post/${post.id}`}>
+        <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
+          <img
+            src={post.works?.image_url || '/icons/default_profile.jpg'}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            alt={post.works?.work_title || "post thumbnail"}
+          />
+        </div>
+      </Link>
     ))}
   </div>
 );
 
-const PostList = ({ posts, hideStats }: { posts: Post[], hideStats?: boolean }) => (
+const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: boolean, isArchive?: boolean }) => (
   <div className="flex flex-col bg-white">
     {(posts || []).map((post) => (
-      <div key={post.id} className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] link-trigger cursor-pointer active:bg-gray-50 transition-colors`}>
-        <div className="flex items-center mb-0.5 relative pointer-events-none">
-          <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
-            <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
+      <Link key={post.id} href={isArchive ? `/work/${post.work_id}` : `/post/${post.id}`}>
+        <div className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] cursor-pointer active:bg-gray-50 transition-colors`}>
+          <div className="flex items-center mb-0.5 relative">
+            <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
+              <img src={post.works?.image_url || '/icons/default_profile.jpg'} className="w-full h-full object-cover border border-gray-100" alt={post.works?.work_title || "work image"} />
+            </div>
+            <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+              <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
+                {post.works?.work_title || "제목 없음"}
+              </h3>
+              <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
+                {post.works?.work_type || "기타"} · {post.works?.artist_name || "알 수 없음"}, {post.works?.work_year || ""}
+              </p>
+              {post.rating && (
+                <div className="flex items-center text-black text-[13px] mt-0.5">
+                  <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
+                  <span>{post.rating.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-            <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
-              {post.works?.work_title || "제목 없음"}
-            </h3>
-            <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
-              {post.works?.work_type || "기타"} · {post.works?.artist_name || "알 수 없음"}, {post.works?.work_year || ""}
-            </p>
-            {post.rating && (
-              <div className="flex items-center text-black text-[13px] mt-0.5">
-                <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
-                <span>{post.rating.toFixed(1)}</span>
+
+          <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
+            {post.content}
+          </p>
+
+          {!hideStats && (
+            <div className="flex items-center text-[12px] text-black font-normal">
+              <div className="flex items-center mr-5">
+                <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
+                <span className="text-[13px]">{post.likes_count || 0}</span>
               </div>
-            )}
-          </div>
+              <div className="flex items-center mr-5">
+                <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
+                <span className="text-[13px]">{post.comments_count || 0}</span>
+              </div>
+              <div className="ml-auto text-gray-400" suppressHydrationWarning>
+                {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+              </div>
+            </div>
+          )}
         </div>
-
-        <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap pointer-events-none">
-          {post.content}
-        </p>
-
-        {!hideStats && (
-          <div className="flex items-center text-[12px] text-black font-normal">
-            <div className="flex items-center mr-5">
-              <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
-              <span className="text-[13px]">{post.likes_count || 0}</span>
-            </div>
-            <div className="flex items-center mr-5">
-              <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
-              <span className="text-[13px]">{post.comments_count || 0}</span>
-            </div>
-            <div className="ml-auto text-gray-400">
-              {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-            </div>
-          </div>
-        )}
-      </div>
+      </Link>
     ))}
   </div>
 );
@@ -258,17 +265,19 @@ const ListSection = ({ lists }: { lists: List[] }) => {
   return (
     <div className="flex flex-col px-5 gap-0 pt-0.5">
       {(lists || []).map((list) => (
-        <div key={list.id} className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors link-trigger cursor-pointer">
-          <img
-            src={list.cover_url || '/icons/default_profile.jpg'}
-            className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100 pointer-events-none"
-            alt={list.title || "list cover"}
-          />
-          <div className="flex flex-col pointer-events-none">
-            <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
-            <p className="text-[11px] text-gray-400 font-normal">{formatWorkCount(list.work_counts)}</p>
+        <Link key={list.id} href={`/list/${list.id}`}>
+          <div className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors cursor-pointer">
+            <img
+              src={list.cover_url || '/icons/default_profile.jpg'}
+              className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
+              alt={list.title || "list cover"}
+            />
+            <div className="flex flex-col">
+              <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
+              <p className="text-[11px] text-gray-400 font-normal">{formatWorkCount(list.work_counts)}</p>
+            </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

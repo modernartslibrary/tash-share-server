@@ -57,53 +57,22 @@ export default function SharePageClient({ type, id, children }: SharePageClientP
 
   const touchStartRef = React.useRef<{ x: number, y: number } | null>(null);
 
-  // Use a global capture listener to ensure we catch all link clicks before Next.js handles them
+  // Use a global click listener to catch link-trigger clicks
   React.useEffect(() => {
-    const DRAG_THRESHOLD = 10;
-
     const handleGlobalClick = (e: MouseEvent) => {
-      // For desktop/mouse clicks, we still want immediate interception
       const target = e.target as HTMLElement;
       const trigger = target.closest('.link-trigger');
+
       if (trigger) {
         showPopup(e);
       }
     };
 
-    const handleGlobalTouchStart = (e: TouchEvent) => {
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      };
-    };
-
-    const handleGlobalTouchEnd = (e: TouchEvent) => {
-      if (!touchStartRef.current) return;
-
-      const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-      const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < DRAG_THRESHOLD) {
-        // Only trigger if it's a tap (small movement)
-        const target = e.target as HTMLElement;
-        const trigger = target.closest('.link-trigger');
-        if (trigger) {
-          showPopup(e);
-        }
-      }
-
-      touchStartRef.current = null;
-    };
-
-    window.addEventListener('click', handleGlobalClick, true);
-    window.addEventListener('touchstart', handleGlobalTouchStart, { capture: true, passive: true });
-    window.addEventListener('touchend', handleGlobalTouchEnd, { capture: true, passive: false });
+    // 버블링 단계에서 리스너를 등록하여 개별 컴포넌트의 stopPropagation이 우선권을 갖도록 함
+    window.addEventListener('click', handleGlobalClick);
 
     return () => {
-      window.removeEventListener('click', handleGlobalClick, true);
-      window.removeEventListener('touchstart', handleGlobalTouchStart, true);
-      window.removeEventListener('touchend', handleGlobalTouchEnd, true);
+      window.removeEventListener('click', handleGlobalClick);
     };
   }, [type, id]);
 
@@ -120,7 +89,7 @@ export default function SharePageClient({ type, id, children }: SharePageClientP
         </div>
 
         <button
-          onClick={() => handleOpenApp()}
+          onClick={(e) => showPopup(e)}
           className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center active:scale-90 transition-transform"
         >
           <span className="text-[20px] font-light leading-none mb-0.5">+</span>

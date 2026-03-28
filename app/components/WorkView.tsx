@@ -83,18 +83,18 @@ function MovieLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* 4. 크레딧 (배우, 감독 등 인물 정보) */}
+      {/* 4. 크레딧 (배우, 감독 등 인물 정보) → 앱 유도 링크 */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {(data.credits || []).map((credit, idx) => (
-              <div 
-                key={credit.id || `credit-${idx}`} 
-                className="flex items-center gap-2 group link-trigger cursor-pointer"
+              <div
+                key={credit.id || `credit-${idx}`}
+                className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
                 {/* 인물 프로필 이미지 */}
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -102,7 +102,7 @@ function MovieLayout({ data }: { data: Work }) {
                   />
                 </div>
                 {/* 이름 및 역할 설명 */}
-                <div className="flex flex-col min-w-0 pointer-events-none">
+                <div className="flex flex-col min-w-0">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
@@ -158,7 +158,7 @@ function AlbumLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Tracks */}
+      {/* Tracks → 앱 유도 링크 */}
       {data.tracks_cache && data.tracks_cache.length > 0 && (
         <div className="px-5 mb-8">
           <div className="flex items-center gap-2 mb-1">
@@ -168,15 +168,15 @@ function AlbumLayout({ data }: { data: Work }) {
             {(data.tracks_cache || []).map((track) => (
               <div
                 key={track.id}
-                className="flex items-start py-2 gap-2 link-trigger cursor-pointer"
+                className="link-trigger flex items-start py-2 gap-2 cursor-pointer"
               >
-                <div className="flex items-start gap-2 flex-1 min-w-0 pointer-events-none">
+                <div className="flex items-start gap-2 flex-1 min-w-0">
                   <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
                   <div className="flex flex-col flex-1 pl-1 min-w-0">
                     <span className="text-[14px] font-normal text-black line-clamp-1 tracking-tighter">{track.name}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 pt-[2px] pointer-events-none">
+                <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
                   <img
                     src="/icons/backIcon_right.png"
                     className="w-[10px] h-[10px] object-contain"
@@ -189,24 +189,24 @@ function AlbumLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* 4. 크레딧 (아티스트 정보) */}
+      {/* 4. 크레딧 (아티스트 정보) → 앱 유도 링크 */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {(data.credits || []).map((credit, idx) => (
-              <div 
-                key={credit.id || `credit-${idx}`} 
-                className="flex items-center gap-2 group link-trigger cursor-pointer"
+              <div
+                key={credit.id || `credit-${idx}`}
+                className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0 pointer-events-none">
+                <div className="flex flex-col min-w-0">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
@@ -259,16 +259,16 @@ function TrackLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* Album Info */}
+      {/* Album Info → 앱 유도 링크 */}
       {data.parent_album_cache && (
         <div className="px-5 mb-8">
           <div
-            className="flex items-center transition-colors link-trigger cursor-pointer"
+            className="link-trigger flex items-center transition-colors cursor-pointer"
           >
-            <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0 pointer-events-none">
+            <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
               <img src={data.parent_album_cache.poster_path} className="w-full h-full object-cover" alt="album cover" />
             </div>
-            <div className="flex flex-col pl-4 min-w-0 pointer-events-none">
+            <div className="flex flex-col pl-4 min-w-0">
               <span className="text-[15px] font-normal text-black truncate tracking-tight">{data.parent_album_cache.title}</span>
               <span className="text-[12px] text-gray-500 truncate tracking-tight">{data.parent_album_cache.artist_names_display}</span>
             </div>
@@ -276,24 +276,24 @@ function TrackLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* 3. 크레딧 (참여한 아티스트 정보) */}
+      {/* 3. 크레딧 (참여한 아티스트 정보) → 앱 유도 링크 */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {(data.credits || []).map((credit, idx) => (
-              <div 
-                key={credit.id || `credit-${idx}`} 
-                className="flex items-center gap-2 group link-trigger cursor-pointer"
+              <div
+                key={credit.id || `credit-${idx}`}
+                className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0 pointer-events-none">
+                <div className="flex flex-col min-w-0">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>
@@ -339,24 +339,24 @@ function BookLayout({ data }: { data: Work }) {
         </div>
       )}
 
-      {/* 3. 크레딧 (저자 및 관련 인물 정보) */}
+      {/* 3. 크레딧 (저자 및 관련 인물 정보) → 앱 유도 링크 */}
       {data.credits && data.credits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
             {(data.credits || []).map((credit, idx) => (
-              <div 
-                key={credit.id || `credit-${idx}`} 
-                className="flex items-center gap-2 group link-trigger cursor-pointer"
+              <div
+                key={credit.id || `credit-${idx}`}
+                className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 pointer-events-none">
+                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <img
                     src={credit.profile_path ? (credit.profile_path.startsWith('http') ? credit.profile_path : `https://image.tmdb.org/t/p/w200${credit.profile_path}`) : "/icons/default_profile.jpg"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
                 </div>
-                <div className="flex flex-col min-w-0 pointer-events-none">
+                <div className="flex flex-col min-w-0">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
                 </div>

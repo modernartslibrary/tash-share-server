@@ -81,6 +81,7 @@ export interface Post {
   works?: Work;
   profiles?: Profile;
   image_url?: string;
+  work_id?: string; // 아카이브 아이템(work_likes) 대응을 위한 필드 추가
   comments?: TASHComment[];
 }
 
@@ -89,11 +90,13 @@ export interface List {
   title: string;
   cover_url: string;
   user_id: string;
+  description?: string;
   profiles?: Profile;
   created_at?: string;
   works_count?: number;
   work_counts?: Record<string, number>;
   is_liked?: boolean;
+  items?: Work[];
 }
 
 export interface Artist {

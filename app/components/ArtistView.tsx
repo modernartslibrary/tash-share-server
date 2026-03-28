@@ -42,7 +42,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
         </div>
       )}
 
-      {/* Works Section */}
+      {/* Works Section → 앱 유도 링크 */}
       {data.initial_works && data.initial_works.length > 0 && (
         <div className="px-6 mb-20">
           <div className="flex items-center justify-between mb-3">
@@ -52,11 +52,11 @@ export default function ArtistView({ data }: ArtistViewProps) {
             {data.initial_works.map((work) => (
               <div
                 key={work.id}
-                className="flex flex-col group link-trigger cursor-pointer"
+                className="link-trigger flex flex-col group cursor-pointer"
                 style={{ marginBottom: '12px' }}
               >
                 <div
-                  className="aspect-square relative overflow-hidden rounded-[4px] border border-gray-100/50 mb-2.5 transition-transform active:scale-95 pointer-events-none"
+                  className="aspect-square relative overflow-hidden rounded-[4px] border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
                   style={{ aspectRatio: '1 / 1' }}
                 >
                   <img
@@ -65,10 +65,10 @@ export default function ArtistView({ data }: ArtistViewProps) {
                     alt={work.work_title}
                   />
                 </div>
-                <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter pointer-events-none">
+                <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter">
                   {work.work_title}
                 </div>
-                <div className="text-[11px] text-gray-400 mt-0 font-light pointer-events-none" style={{ marginTop: '4px' }}>
+                <div className="text-[11px] text-gray-400 mt-0 font-light" style={{ marginTop: '4px' }}>
                   {work.work_year}
                 </div>
               </div>

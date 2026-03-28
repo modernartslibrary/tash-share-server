@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import ProfileView from "../../components/ProfileView";
 import WorkView from "../../components/WorkView";
 import ArtistView from "../../components/ArtistView";
+import ListView from "../../components/ListView";
 import SharePageClient from "../../components/SharePageClient";
 import { Work, Post, List, Profile, Artist, TASHData, Credit, TASHComment } from "../../types";
 
@@ -45,11 +46,12 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
     let data = null;
     if (response.ok) {
-        const result = await response.json();
-        data = result.data || result;
+      const result = await response.json();
+      data = result.data || result;
+      console.log(`[fetchContent] Edge Function success for ${type}: ${decodedId}`);
     } else {
-        const errText = await response.text();
-        console.warn(`[fetchContent] Edge Function returned error ${response.status}:`, errText);
+      const errText = await response.text();
+      console.warn(`[fetchContent] Edge Function failed (${response.status}):`, errText);
     }
 
     // 폴백: Edge Function이 댓글을 반환하지 않는 경우 (미배포 등), 서버 사이드에서 직접 조회
@@ -82,17 +84,23 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
 
     // 폴백: Edge Function이 프로필 정보를 반환하지 않는 경우 (UUID 정규식 오류 등), 서버 사이드에서 직접 조회
     if (type === 'profile' && (!data || !data.username)) {
-      console.log(`[fetchContent] Profile failed, falling back to direct DB query: ${id}`);
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      console.log(`[fetchContent] Profile missing/failed, starting direct DB query: ${decodedId}`);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedId);
       let query = supabase.from("profiles").select("*");
-      if (isUUID) query = query.eq("id", id);
+      if (isUUID) query = query.eq("id", decodedId);
       else {
-        const cleanUsername = id.startsWith('@') ? id.substring(1) : id;
+        const cleanUsername = decodedId.startsWith('@') ? decodedId.substring(1) : decodedId;
         query = query.ilike("username", cleanUsername);
       }
-      
-      const { data: directProfile } = await query.single();
+
+      const { data: directProfile, error: queryError } = await query.maybeSingle();
+
+      if (queryError) {
+        console.error(`[fetchContent] Direct query error:`, queryError);
+      }
+
       if (directProfile) {
+        console.log(`[fetchContent] Direct profile found: ${directProfile.username}`);
         // 초기 데이터(포스트 등) 병렬 로드
         const [posts, lists, archives] = await Promise.all([
           supabase.from("posts").select("*, works(image_url, work_type, work_title, artist_name, work_year)").eq("user_id", directProfile.id).order("created_at", { ascending: false }).limit(12),
@@ -106,6 +114,31 @@ async function fetchContent(type: string, id: string): Promise<{ data: TASHData 
           initial_lists: lists.data || [],
           initial_archives: archives.data || []
         };
+      } else {
+        console.warn(`[fetchContent] No profile found even in direct query for: ${decodedId}`);
+      }
+    }
+
+    // 폴백: Edge Function이 리스트 아이템을 반환하지 않는 경우, 서버 사이드에서 직접 조회
+    if (type === 'list' && data && !data.items) {
+      console.log(`[fetchContent] List items missing, falling back to direct DB query: ${id}`);
+      const { data: listItems } = await supabase
+        .from("list_items")
+        .select("*, works(*)")
+        .eq("list_id", id)
+        .order("order_index", { ascending: true });
+
+      if (listItems) {
+        data.items = listItems.map((item: any) => item.works).filter(Boolean);
+
+        // work_counts 계산
+        const workCounts: Record<string, number> = {};
+        data.items.forEach((work: any) => {
+          if (work.work_type) {
+            workCounts[work.work_type] = (workCounts[work.work_type] || 0) + 1;
+          }
+        });
+        data.work_counts = workCounts;
       }
     }
 
@@ -208,7 +241,7 @@ export default async function SharePage({ params }: { params: Promise<{ type: st
       {type === 'post' && <PostLayout data={data as Post} />}
       {type === 'profile' && <ProfileView data={data as Profile} />}
       {type === 'artist' && <ArtistView data={data as Artist} />}
-      {type === 'list' && <ListLayout data={data as List} />}
+      {type === 'list' && <ListView data={data as List} />}
     </SharePageClient>
   );
 }
@@ -393,14 +426,3 @@ function CommentItem({ comment }: { comment: TASHComment }) {
 }
 
 
-function ListLayout({ data }: { data: List }) {
-  return (
-    <div className="flex flex-col items-center py-8 link-trigger cursor-pointer active:opacity-80 transition-opacity">
-      <div className="w-48 aspect-square mb-8 relative pointer-events-none">
-        <img src={data.cover_url} className="w-full h-full object-cover border border-gray-50" alt={data.title || "list"} />
-      </div>
-      <h2 className="text-2xl font-extrabold mb-2 pointer-events-none">{data.title}</h2>
-      <p className="text-gray-400 text-sm pointer-events-none">Created by {data.profiles?.username}</p>
-    </div>
-  );
-}
