@@ -57,8 +57,8 @@ export default function AppDownloadPopup({ isOpen, onClose, type, id }: AppDownl
             앱에서 확인하시겠어요?
           </h3>
           <p className="text-[14px] text-gray-500 mb-8 leading-relaxed">
-            앱을 설치하면 작품 정보 보기, 기록, 아카이브 등<br />
-            모든 기능을 온전하게 즐길 수 있습니다.
+            작품 상세 정보, 기록, 아카이브 등<br />
+            모든 기능을 제한 없이 이용할 수 있습니다.
           </p>
 
           <div className="flex flex-col w-full gap-3">

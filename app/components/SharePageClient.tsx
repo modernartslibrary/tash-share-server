@@ -84,15 +84,14 @@ export default function SharePageClient({ type, id, children }: SharePageClientP
           <div className="link-trigger cursor-pointer">
             <img src="/icons/app_logo.png" className="h-5 object-contain" alt="tash" />
           </div>
-          <div className="h-3 w-[1px] bg-gray-200 mx-1" />
-          <span className="text-[13px] font-medium text-gray-500 tracking-tight">tash – 취향의 기록과 축적, 연결</span>
+          <span className="text-[13px] font-medium text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
         </div>
 
         <button
           onClick={(e) => showPopup(e)}
-          className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center active:scale-90 transition-transform"
+          className="px-4 h-8 rounded-full bg-black text-white flex items-center justify-center active:scale-90 transition-transform text-[13px] font-semibold"
         >
-          <span className="text-[20px] font-light leading-none mb-0.5">+</span>
+          열기
         </button>
       </header>
 
