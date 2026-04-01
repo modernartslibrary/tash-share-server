@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Post, TASHComment } from '../types';
+import { resolveImageUrl } from '../utils/imageUtils';
 
 // 작품 카테고리 라벨 반환
 function getCategoryLabel(type: string | undefined) {
@@ -35,7 +36,7 @@ function CommentItem({ comment }: { comment: TASHComment }) {
   return (
     <div className="flex flex-col">
       <div className="flex gap-3">
-        <Link href={`/profile/${comment.user_id}`}>
+        <Link href={`/${comment.profiles?.username || ''}`}>
           <img
             src={comment.profiles?.avatar_url || '/icons/default_profile.jpg'}
             className="w-9 h-9 rounded-full object-cover flex-shrink-0"
@@ -44,7 +45,7 @@ function CommentItem({ comment }: { comment: TASHComment }) {
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <Link href={`/profile/${comment.user_id}`}>
+            <Link href={`/${comment.profiles?.username || ''}`}>
               <span className="font-medium text-[15px] text-black">{comment.profiles?.username}</span>
             </Link>
             <span className="text-[12px] text-[#A0A0A0] font-normal">{formatTimeAgo(comment.created_at)}</span>
@@ -68,7 +69,7 @@ function CommentItem({ comment }: { comment: TASHComment }) {
           <div className="absolute left-[-20px] top-0 bottom-7 w-[1px] bg-gray-100" />
           {comment.replies.map((reply: TASHComment) => (
             <div key={reply.id} className="flex gap-3 relative">
-              <Link href={`/profile/${reply.user_id}`}>
+              <Link href={`/${reply.profiles?.username || ''}`}>
                 <img
                   src={reply.profiles?.avatar_url || '/icons/default_profile.jpg'}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0"
@@ -77,7 +78,7 @@ function CommentItem({ comment }: { comment: TASHComment }) {
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <Link href={`/profile/${reply.user_id}`}>
+                  <Link href={`/${reply.profiles?.username || ''}`}>
                     <span className="font-medium text-[15px] text-black">{reply.profiles?.username}</span>
                   </Link>
                   <span className="text-[12px] text-[#A0A0A0] font-normal">{formatTimeAgo(reply.created_at)}</span>
@@ -107,7 +108,7 @@ export default function PostView({ data }: { data: Post }) {
     <div className="py-2">
       {/* 유저 정보 섹션 */}
       <div className="flex items-center mb-4 px-5">
-        <Link href={`/profile/${data.user_id}`} className="flex items-center">
+        <Link href={`/${data.profiles?.username || ''}`} className="flex items-center">
           <img
             src={data.profiles?.avatar_url || '/icons/default_profile.jpg'}
             className="w-10 h-10 rounded-full border border-gray-100 object-cover mr-3"
@@ -122,10 +123,10 @@ export default function PostView({ data }: { data: Post }) {
 
       {/* 작품 미리보기 섹션 */}
       <div className="flex items-center mb-1 px-5 gap-4">
-        <Link href={`/${data.works?.work_type}/${data.works?.id}`} className="flex items-center gap-4 w-full">
+        <Link href={`/${data.works?.work_type || 'work'}/${data.works?.slug || data.works?.id}`} className="flex items-center gap-4 w-full">
           <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
             <img
-              src={data.works?.image_url}
+              src={resolveImageUrl(data.works?.image_url)}
               className="w-full h-full object-cover block"
               alt="work"
             />
@@ -176,7 +177,9 @@ export default function PostView({ data }: { data: Post }) {
             ))}
           </div>
         ) : (
-          <p className="text-[14px] text-gray-400 py-4 text-center">첫 댓글을 남겨보세요.</p>
+          <p className="text-[14px] text-gray-400 py-8 text-center cursor-pointer link-trigger active:opacity-50 transition-opacity">
+            첫 댓글을 남겨보세요.
+          </p>
         )}
       </div>
     </div>

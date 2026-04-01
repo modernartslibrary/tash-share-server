@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { List, Work } from '../types';
+import { resolveImageUrl } from '../utils/imageUtils';
 
 interface ListViewProps {
   data: List;
@@ -56,7 +57,7 @@ export default function ListView({ data }: ListViewProps) {
 
       {/* 4. 제작자 프로필 아이디 (Centered) */}
       <div className="px-10 text-center mb-6">
-        <Link href={`/profile/${data.user_id}`}>
+        <Link href={`/${data.profiles?.username || ''}`}>
           <p className="inline-block text-[14px] text-gray-400 font-normal hover:text-black transition-colors cursor-pointer">
             @{data.profiles?.username || 'unknown'}
           </p>
@@ -73,14 +74,14 @@ export default function ListView({ data }: ListViewProps) {
       {/* 6. 작품 목록 */}
       <div className="flex flex-col pt-2">
         {(data.items || []).map((work) => (
-          <Link key={work.id} href={`/work/${work.id}`}>
+          <Link key={work.id} href={`/${work.work_type}/${work.slug || work.id}`}>
             <div
               className="flex items-center py-2.5 px-6 active:bg-gray-50 transition-colors cursor-pointer group"
             >
               {/* 작품 썸네일 */}
               <div className="w-[60px] h-[60px] overflow-hidden mr-4 flex-shrink-0">
                 <img
-                  src={work.image_url || '/icons/default_profile.jpg'}
+                  src={resolveImageUrl(work.image_url || '/icons/default_profile.jpg')}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt={work.work_title}
                 />

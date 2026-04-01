@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Post, List, Profile } from '../types';
+import { resolveImageUrl, resolveProfileImageUrl } from '../utils/imageUtils';
 
 interface ProfileViewProps {
   data: Profile;
@@ -223,13 +224,13 @@ const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) 
     {(posts || []).map((post) => {
       const isArtist = post.item_type === 'artist';
       const href = isArchive
-        ? (isArtist ? `/artist/${post.artist_id}` : `/work/${post.work_id}`)
-        : `/post/${post.id}`;
+        ? (isArtist 
+            ? `/artist/${post.artist_slug || post.artist_id}` 
+            : `/${post.works?.work_type || 'work'}/${post.works?.slug || post.work_id}`)
+        : `/post/${post.slug || post.id}`;
       const imageUrl = isArtist
-        ? (post.artist_profile_path
-          ? (post.artist_profile_path.startsWith('http') ? post.artist_profile_path : `https://image.tmdb.org/t/p/w200${post.artist_profile_path}`)
-          : '/icons/default_profile.jpg')
-        : (post.works?.image_url || '/icons/default_profile.jpg');
+        ? resolveProfileImageUrl(post.artist_profile_path)
+        : resolveImageUrl(post.works?.image_url || '/icons/default_profile.jpg');
 
       return (
         <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
@@ -251,8 +252,10 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
     {(posts || []).map((post) => {
       const isArtist = post.item_type === 'artist';
       const href = isArchive
-        ? (isArtist ? `/artist/${post.artist_id}` : `/work/${post.work_id}`)
-        : `/post/${post.id}`;
+        ? (isArtist 
+            ? `/artist/${post.artist_slug || post.artist_id}` 
+            : `/${post.works?.work_type || 'work'}/${post.works?.slug || post.work_id}`)
+        : `/post/${post.slug || post.id}`;
       const imageUrl = isArtist
         ? (post.artist_profile_path
           ? (post.artist_profile_path.startsWith('http') ? post.artist_profile_path : `https://image.tmdb.org/t/p/w200${post.artist_profile_path}`)
@@ -270,8 +273,25 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                 <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
                   {isArtist ? post.artist_name : (post.works?.work_title || "제목 없음")}
                 </h3>
-                <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'}`}>
-                  {isArtist ? "인물" : (post.works?.work_type || "기타")} {isArtist ? "" : `· ${post.works?.artist_name || "알 수 없음"}, ${post.works?.work_year || ""}`}
+                <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'} line-clamp-1`}>
+                  {(() => {
+                    if (isArtist) {
+                      const birthYear = post.artist_birth_date ? post.artist_birth_date.split('-')[0] : '';
+                      return `인물 · ${birthYear}-`;
+                    }
+                    const type = post.works?.work_type;
+                    let label = "기타";
+                    if (type === 'movie') label = "영화";
+                    else if (type === 'tv') label = "TV";
+                    else if (type === 'album') label = "앨범";
+                    else if (type === 'track') label = "트랙";
+                    else if (type === 'book') label = "책";
+                    
+                    const details = post.works?.artist_name || "알 수 없음";
+                    const year = post.works?.work_year || "";
+                    
+                    return `${label} · ${details}${year ? `, ${year}` : ''}`;
+                  })()}
                 </p>
                 {!isArtist && post.rating && (
                   <div className="flex items-center text-black text-[13px] mt-0.5">
@@ -314,28 +334,37 @@ const formatWorkCount = (workCounts?: Record<string, number>) => {
   if (!workCounts || Object.keys(workCounts).length === 0) return "작품 0개";
 
   const entries = Object.entries(workCounts);
+  // 개수가 많은 순서대로 정렬
   entries.sort((a, b) => b[1] - a[1]);
 
-  const [type, count] = entries[0];
+  const labels = entries.map(([type, count]) => {
+    let label = "작품";
+    let unit = "개";
 
-  let label = "작품";
-  let unit = "개";
+    if (type === 'movie') {
+      label = "영화";
+      unit = "편";
+    } else if (type === 'tv') {
+      label = "TV";
+      unit = "편";
+    } else if (type === 'album') {
+      label = "앨범";
+      unit = "개";
+    } else if (type === 'track') {
+      label = "트랙";
+      unit = "곡";
+    } else if (type === 'music') {
+      label = "음악";
+      unit = "곡";
+    } else if (type === 'book') {
+      label = "책";
+      unit = "권";
+    }
 
-  if (type === 'movie') {
-    label = "영화";
-    unit = "편";
-  } else if (type === 'tv') {
-    label = "TV";
-    unit = "편";
-  } else if (['album', 'track', 'music'].includes(type)) {
-    label = "음악";
-    unit = "개";
-  } else if (type === 'book') {
-    label = "책";
-    unit = "개";
-  }
+    return `${label} ${count}${unit}`;
+  });
 
-  return `${label} ${count}${unit}`;
+  return labels.join(', ');
 };
 
 const ListSection = ({ lists }: { lists: List[] }) => {
@@ -346,10 +375,10 @@ const ListSection = ({ lists }: { lists: List[] }) => {
   return (
     <div className="flex flex-col px-5 gap-0 pt-0.5">
       {(lists || []).map((list) => (
-        <Link key={list.id} href={`/list/${list.id}`}>
+        <Link key={list.id} href={`/list/${list.slug || list.id}`}>
           <div className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors cursor-pointer">
             <img
-              src={list.cover_url || '/icons/default_profile.jpg'}
+              src={resolveImageUrl(list.cover_url || '/icons/default_profile.jpg')}
               className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
               alt={list.title || "list cover"}
             />

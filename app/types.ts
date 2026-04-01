@@ -4,6 +4,18 @@ export interface Credit {
   profile_path?: string;
   role: string;
   character_name?: string;
+  birth_date?: string;
+  death_date?: string;
+  birth_place?: string;
+  slug?: string;
+}
+
+export interface RepresentativeCredit {
+  id: string;
+  name: string;
+  profile_path: string | null;
+  role: string;
+  character_name: string;
 }
 
 export interface Track {
@@ -19,6 +31,7 @@ export interface Track {
 
 export interface Work {
   id: string;
+  slug?: string;
   work_title: string;
   artist_name: string;
   work_year: string | number;
@@ -36,6 +49,7 @@ export interface Work {
   tracks_cache?: Track[];
   parent_album_cache?: {
     id: string;
+    slug?: string;
     title: string;
     poster_path: string;
     artist_names_display: string;
@@ -72,6 +86,7 @@ export interface TASHComment {
 
 export interface Post {
   id: string;
+  slug?: string;
   content: string;
   created_at: string;
   user_id: string;
@@ -86,11 +101,14 @@ export interface Post {
   artist_id?: string;
   artist_name?: string;
   artist_profile_path?: string;
+  artist_birth_date?: string;
+  artist_slug?: string;
   comments?: TASHComment[];
 }
 
 export interface List {
   id: string;
+  slug?: string;
   title: string;
   cover_url: string;
   user_id: string;
@@ -105,10 +123,15 @@ export interface List {
 
 export interface Artist {
   id: string;
+  slug?: string;
   name: string;
   profile_path?: string;
   biography?: string;
+  birth_date?: string;
+  death_date?: string;
+  birth_place?: string;
   initial_works?: Work[];
+  representative_works?: any[]; // JSONB data (compact works)
 }
 
 export type TASHData = Work | Profile | Post | List | Artist;

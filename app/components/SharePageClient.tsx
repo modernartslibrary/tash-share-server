@@ -51,6 +51,9 @@ export default function SharePageClient({ type, id, children }: SharePageClientP
       if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
         e.nativeEvent.stopImmediatePropagation();
       }
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
     }
     setIsPopupOpen(true);
   };
@@ -68,11 +71,11 @@ export default function SharePageClient({ type, id, children }: SharePageClientP
       }
     };
 
-    // 버블링 단계에서 리스너를 등록하여 개별 컴포넌트의 stopPropagation이 우선권을 갖도록 함
-    window.addEventListener('click', handleGlobalClick);
+    // 캡처링(capture) 단계에서 리스너를 등록하여 Next.js Link의 기본 동작보다 먼저 가로챔
+    window.addEventListener('click', handleGlobalClick, true);
 
     return () => {
-      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('click', handleGlobalClick, true);
     };
   }, [type, id]);
 
