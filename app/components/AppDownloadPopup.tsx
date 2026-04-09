@@ -7,37 +7,32 @@ interface AppDownloadPopupProps {
   onClose: () => void;
   type?: string;
   id?: string;
+  slug?: string;
 }
 
-export default function AppDownloadPopup({ isOpen, onClose, type, id }: AppDownloadPopupProps) {
+export default function AppDownloadPopup({ isOpen, onClose, type, id, slug }: AppDownloadPopupProps) {
   if (!isOpen) return null;
 
   const handleOpenApp = () => {
     const workTypes = ['movie', 'tv', 'track', 'album', 'book'];
     const mappedType = type === 'user' ? 'profile' : (type && workTypes.includes(type) ? 'work' : type || 'home');
-    const deepLink = `io.supabase.tash:/${mappedType}/${id || ''}`;
+    
+    // 분석 및 폴백을 위한 쿼리 파라미터 구성
+    const queryParams = new URLSearchParams();
+    if (slug) queryParams.set('slug', slug);
+    queryParams.set('from', 'web');
+    const queryString = queryParams.toString();
 
-    const playStoreUrl = `https://play.google.com/store/apps/details?id=com.MAL.tash`;
-    const appStoreUrl = `https://apps.apple.com/app/tash/id6755390469`;
+    // ✅ 유니버설 링크 구성
+    const openAppUrl = (type === 'home' || !id) 
+      ? `https://link.tash.kr/open-app/home` 
+      : `https://link.tash.kr/open-app/${mappedType}/${id}?${queryString}`;
 
-    const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : '';
-    const isAndroid = /android/.test(userAgent);
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-
-    window.location.href = deepLink;
-
-    const start = Date.now();
-    setTimeout(() => {
-      if (Date.now() - start < 3000) {
-        if (isAndroid) {
-          window.location.href = playStoreUrl;
-        } else if (isIOS) {
-          window.location.href = appStoreUrl;
-        } else {
-          window.location.href = 'https://tash.kr/download';
-        }
-      }
-    }, 2500);
+    // ✅ 유니버설 링크만 사용하여 앱 실행 시도
+    window.location.href = openAppUrl;
+    
+    // 클릭 즉시 팝업 닫기
+    onClose();
   };
 
   return (

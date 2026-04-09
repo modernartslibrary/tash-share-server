@@ -214,15 +214,21 @@ export default async function SharedItemPage({ params }: { params: Promise<{ ide
 
   if (!data) {
     return (
-      <div className="p-20 text-center flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-xl font-bold mb-4">콘텐츠를 찾을 수 없습니다.</h1>
-        <div className="mt-8 text-blue-500 underline cursor-pointer">홈으로 이동</div>
-      </div>
+      <SharePageClient type="home" id="">
+        <div className="flex flex-col items-center justify-center min-h-[70vh] px-5 text-center">
+          <h1 className="text-xl font-bold mb-3 tracking-tight">콘텐츠를 찾을 수 없습니다</h1>
+          <p className="text-[14px] text-gray-500 mb-10">링크가 올바르지 않거나 삭제된 콘텐츠입니다.</p>
+          
+          <div className="link-trigger px-8 h-12 rounded-full bg-black text-white flex items-center justify-center active:scale-95 transition-transform text-[14px] font-semibold cursor-pointer">
+            앱에서 열기
+          </div>
+        </div>
+      </SharePageClient>
     );
   }
 
   return (
-    <SharePageClient type={identifier} id={slug}>
+    <SharePageClient type={identifier} id={data.id} slug={slug}>
       {["work", "movie", "tv", "track", "album", "book"].includes(identifier) && <WorkView data={data as Work} />}
       {identifier === 'post' && <PostView data={data as Post} />}
       {identifier === 'artist' && <ArtistView data={data as Artist} />}
