@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { useDeepLink } from '../hooks/useDeepLink';
 
 interface AppDownloadPopupProps {
   isOpen: boolean;
@@ -11,28 +11,16 @@ interface AppDownloadPopupProps {
 }
 
 export default function AppDownloadPopup({ isOpen, onClose, type, id, slug }: AppDownloadPopupProps) {
+  const { openApp } = useDeepLink();
   if (!isOpen) return null;
 
   const handleOpenApp = () => {
-    const workTypes = ['movie', 'tv', 'track', 'album', 'book'];
-    const mappedType = type === 'user' ? 'profile' : (type && workTypes.includes(type) ? 'work' : type || 'home');
-    
-    // 분석 및 폴백을 위한 쿼리 파라미터 구성
-    const queryParams = new URLSearchParams();
-    if (slug) queryParams.set('slug', slug);
-    queryParams.set('from', 'web');
-    const queryString = queryParams.toString();
-
-    // ✅ 커스텀 URL 스킴 주소 구성 (동일 도메인에서 앱을 깨우기 위해 필수)
-    const customSchemeUrl = (type === 'home' || !id)
-      ? `io.supabase.tash://open-app/home`
-      : `io.supabase.tash://open-app/${mappedType}/${id}?${queryString}`;
-
-    // ✅ 커스텀 스킴으로 앱 실행 시도 (앱이 있으면 열림, 없으면 아무 동작 안 함)
-    window.location.href = customSchemeUrl;
-    
-    // 클릭 즉시 팝업 닫기
-    onClose();
+    openApp({
+      type: type || 'home',
+      id: id || '',
+      slug,
+      onClose,
+    });
   };
 
   return (

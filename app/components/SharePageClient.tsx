@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import AppDownloadPopup from './AppDownloadPopup';
 import Link from 'next/link';
 
+import { useDeepLink } from '../hooks/useDeepLink';
+
 interface SharePageClientProps {
   type: string;
   id: string; // UUID (또는 fallback 시 slug)
@@ -13,29 +15,18 @@ interface SharePageClientProps {
 
 export default function SharePageClient({ type, id, slug, children }: SharePageClientProps) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const { openApp } = useDeepLink();
 
   const handleOpenApp = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
 
-    const workTypes = ['movie', 'tv', 'track', 'album', 'book'];
-    const mappedType = type === 'user' ? 'profile' : (workTypes.includes(type) ? 'work' : type);
-    
-    // 분석 및 폴백을 위한 쿼리 파라미터 구성
-    const queryParams = new URLSearchParams();
-    if (slug) queryParams.set('slug', slug);
-    queryParams.set('from', 'web');
-    const queryString = queryParams.toString();
-
-    // ✅ 커스텀 URL 스킴 주소 구성 (동일 도메인에서 앱을 깨우기 위해 필수)
-    const customSchemeUrl = (type === 'home' || !id)
-      ? `io.supabase.tash://open-app/home`
-      : `io.supabase.tash://open-app/${mappedType}/${id}?${queryString}`;
-
-    // ✅ 커스텀 스킴으로 앱 실행 시도 (앱이 있으면 열림, 없으면 아무 동작 안 함)
-    window.location.href = customSchemeUrl;
-    
-    // 버튼 클릭 후 팝업 닫기 (UX 개선)
-    setIsPopupOpen(false);
+    // 스마트 딥링크 실행
+    openApp({
+      type,
+      id,
+      slug,
+      onClose: () => setIsPopupOpen(false),
+    });
   };
 
   const showPopup = (e?: any) => {
