@@ -26,13 +26,13 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
     queryParams.set('from', 'web');
     const queryString = queryParams.toString();
 
-    // ✅ 유니버설 링크 주소 구성
-    const openAppUrl = (type === 'home' || !id) 
-      ? `https://link.tash.kr/open-app/home` 
-      : `https://link.tash.kr/open-app/${mappedType}/${id}?${queryString}`;
+    // ✅ 커스텀 URL 스킴 주소 구성 (동일 도메인에서 앱을 깨우기 위해 필수)
+    const customSchemeUrl = (type === 'home' || !id)
+      ? `io.supabase.tash://open-app/home`
+      : `io.supabase.tash://open-app/${mappedType}/${id}?${queryString}`;
 
-    // ✅ 유니버설 링크만 사용하여 앱 실행 시도 (앱 미설치 시 서버 사이드에서 스토어 리다이렉트 처리)
-    window.location.href = openAppUrl;
+    // ✅ 커스텀 스킴으로 앱 실행 시도 (앱이 있으면 열림, 없으면 아무 동작 안 함)
+    window.location.href = customSchemeUrl;
     
     // 버튼 클릭 후 팝업 닫기 (UX 개선)
     setIsPopupOpen(false);
