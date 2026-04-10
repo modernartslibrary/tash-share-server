@@ -206,7 +206,7 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
     openGraph: { title, description, images: [{ url: image }], type: "website" },
     twitter: { card: "summary_large_image", title, description, images: [image] },
     other: {
-      'apple-itunes-app': `app-id=6755390469, app-argument=https://link.tash.kr/open-app/${identifier}/${slug}`
+      'apple-itunes-app': `app-id=6755390469, app-argument=io.supabase.tash://link.tash.kr/open-app/${identifier}/${slug}`
     }
   };
 }
