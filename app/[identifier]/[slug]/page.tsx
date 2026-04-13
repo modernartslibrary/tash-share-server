@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import WorkView from "../../components/WorkView";
 import ArtistView from "../../components/ArtistView";
 import ListView from "../../components/ListView";
@@ -23,7 +24,6 @@ const cachedFetchContent = cache(
       const adminClient = createClient(SUPABASE_URL, serviceRoleKey || SUPABASE_ANON_KEY);
 
       let data: any = null;
-      console.log(`[fetchContent] Querying by slug - identifier: ${identifier}, slug: ${slug}`);
 
       switch (identifier) {
         case 'work':
@@ -35,7 +35,8 @@ const cachedFetchContent = cache(
           let query = adminClient
             .from("works")
             .select(`
-              *,
+              id, slug, work_title, artist_name, display_artist_name, work_year, image_url, work_type,
+              biography, runtime_minutes, total_episodes, genres, production_countries, tracks_cache, parent_album_cache,
               work_artist (
                 role,
                 artist_order,
@@ -57,7 +58,7 @@ const cachedFetchContent = cache(
           const { data: work } = await query.maybeSingle();
           
           if (work && work.work_artist) {
-            work.credits = (work.work_artist as any[]).map((wa: any) => ({
+            (work as any).credits = (work.work_artist as any[]).map((wa: any) => ({
               id: wa.artists?.id || '',
               slug: wa.artists?.slug,
               name: wa.artists?.name || 'Unknown',
@@ -66,6 +67,24 @@ const cachedFetchContent = cache(
               character_name: wa.character_name
             }));
           }
+
+          if (work) {
+            // 평점 집계: posts 테이블에서 해당 작품의 모든 별점을 가져와 평균과 개수 계산
+            const { data: ratingData } = await adminClient
+              .from("posts")
+              .select("rating")
+              .eq("work_id", work.id)
+              .not("rating", "is", null);
+
+            if (ratingData && ratingData.length > 0) {
+              const ratings = ratingData.map((p: any) => p.rating).filter(Boolean);
+              if (ratings.length > 0) {
+                (work as any).rating_count = ratings.length;
+                (work as any).rating_avg = ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
+              }
+            }
+          }
+          
           data = work;
           break;
         }
@@ -96,7 +115,7 @@ const cachedFetchContent = cache(
         case 'post': {
           const { data: post } = await adminClient
             .from("posts")
-            .select("*, profiles!inner(*), works(*)")
+            .select("*, profiles!inner(id, username, avatar_url, is_private), works(id, slug, image_url, work_type, work_title, artist_name, work_year)")
             .eq("slug", slug)
             .eq("profiles.is_private", false)
             .maybeSingle();
@@ -104,7 +123,7 @@ const cachedFetchContent = cache(
           if (post) {
             const { data: comments } = await adminClient
               .from("post_comments")
-              .select("*, profiles!inner(*)")
+              .select("*, profiles!inner(id, username, avatar_url, is_private)")
               .eq("post_id", post.id)
               .eq("profiles.is_private", false)
               .order("created_at", { ascending: true });
@@ -175,7 +194,7 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
-  let image = "https://link.tash.kr/icons/app_logo.png";
+  let image = "https://open.tash.kr/icons/app_logo.png";
 
   if (data) {
     if (["work", "movie", "tv", "track", "album", "book"].includes(identifier)) {
@@ -200,13 +219,19 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
     }
   }
 
+  let appPath = `/open-app/${identifier}/${slug}`;
+  if (identifier === "work") {
+    const workId = data && "id" in data ? data.id : slug;
+    appPath = `/open-app/work/${workId}?slug=${slug}`;
+  }
+
   return {
     title,
     description,
     openGraph: { title, description, images: [{ url: image }], type: "website" },
     twitter: { card: "summary_large_image", title, description, images: [image] },
     other: {
-      'apple-itunes-app': `app-id=6755390469, app-argument=io.supabase.tash://link.tash.kr/open-app/${identifier}/${slug}`
+      'apple-itunes-app': `app-id=6755390469, app-argument=https://open.tash.kr${appPath}`
     }
   };
 }
@@ -214,6 +239,10 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
 export default async function SharedItemPage({ params }: { params: Promise<{ identifier: string; slug: string }> }) {
   const { identifier, slug } = await params;
   const { data } = await cachedFetchContent(identifier, slug);
+
+  if (identifier === "work" && data && "work_type" in data && typeof data.work_type === "string") {
+    redirect(`/${data.work_type}/${encodeURIComponent(slug)}`);
+  }
 
   if (!data) {
     return (
@@ -231,7 +260,7 @@ export default async function SharedItemPage({ params }: { params: Promise<{ ide
   }
 
   return (
-    <SharePageClient type={identifier} id={data.id} slug={slug}>
+    <SharePageClient type={identifier} id={slug} slug={slug}>
       {["work", "movie", "tv", "track", "album", "book"].includes(identifier) && <WorkView data={data as Work} />}
       {identifier === 'post' && <PostView data={data as Post} />}
       {identifier === 'artist' && <ArtistView data={data as Artist} />}

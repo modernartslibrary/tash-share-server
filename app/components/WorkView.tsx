@@ -70,10 +70,10 @@ function MovieLayout({
             {data.work_title}
           </h1>
           {data.rating_count && data.rating_count > 0 ? (
-            <div className="flex items-center text-[18px] font-bold text-black mt-1">
-              <img src="/icons/star_icon.png" className="w-[16px] h-[16px] mr-1" alt="star" />
+            <div className="flex items-center text-[13px] font-bold text-black mt-1">
+              <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-[2px]" alt="star" />
               <span>{data.rating_avg?.toFixed(1)}</span>
-              <span className="text-gray-300 ml-1">({data.rating_count})</span>
+              <span className="text-black ml-[2px] text-[13px]">({data.rating_count})</span>
             </div>
           ) : null}
         </div>
@@ -199,7 +199,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
             {(data.tracks_cache || []).map((track) => (
               <div
                 key={track.id}
-                className="link-trigger flex items-start py-2 gap-2 cursor-pointer"
+                className="link-trigger flex items-start py-0.5 gap-2 cursor-pointer"
               >
                 <div className="flex items-start gap-2 flex-1 min-w-0">
                   <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>

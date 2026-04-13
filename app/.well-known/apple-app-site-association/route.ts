@@ -5,7 +5,7 @@ export async function GET() {
       details: [
         {
           appID: "SL8MWRF5XP.com.MAL.tash",
-          paths: ["*"],
+          paths: ["/open-app/*"],
         },
       ],
     },

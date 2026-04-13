@@ -2,9 +2,6 @@
 
 import React, { useState } from 'react';
 import AppDownloadPopup from './AppDownloadPopup';
-import Link from 'next/link';
-
-import { useDeepLink } from '../hooks/useDeepLink';
 
 interface SharePageClientProps {
   type: string;
@@ -15,35 +12,18 @@ interface SharePageClientProps {
 
 export default function SharePageClient({ type, id, slug, children }: SharePageClientProps) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const { openApp } = useDeepLink();
 
-  const handleOpenApp = (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-
-    // 스마트 딥링크 실행
-    openApp({
-      type,
-      id,
-      slug,
-      onClose: () => setIsPopupOpen(false),
-    });
-  };
-
-  const showPopup = (e?: any) => {
+  const showPopup = (e?: React.MouseEvent | MouseEvent) => {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
       e.stopPropagation();
-      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
-        e.nativeEvent.stopImmediatePropagation();
-      }
-      if (typeof e.stopImmediatePropagation === 'function') {
-        e.stopImmediatePropagation();
+      const nativeEvent = 'nativeEvent' in e ? e.nativeEvent : e;
+      if ('stopImmediatePropagation' in nativeEvent && typeof nativeEvent.stopImmediatePropagation === 'function') {
+        nativeEvent.stopImmediatePropagation();
       }
     }
     setIsPopupOpen(true);
   };
-
-  const touchStartRef = React.useRef<{ x: number, y: number } | null>(null);
 
   // Use a global click listener to catch link-trigger clicks
   React.useEffect(() => {
@@ -62,7 +42,7 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
     return () => {
       window.removeEventListener('click', handleGlobalClick, true);
     };
-  }, [type, id]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-black font-sans pb-12">
@@ -94,6 +74,7 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
         onClose={() => setIsPopupOpen(false)}
         type={type}
         id={id}
+        slug={slug}
       />
     </div>
   );
