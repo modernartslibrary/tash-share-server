@@ -226,7 +226,7 @@ const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) 
       const href = isArchive
         ? (isArtist 
             ? `/artist/${post.artist_slug || post.artist_id}` 
-            : `/${post.works?.work_type || 'work'}/${post.works?.slug || post.work_id}`)
+            : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
       const imageUrl = isArtist
         ? resolveProfileImageUrl(post.artist_profile_path)
@@ -254,7 +254,7 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
       const href = isArchive
         ? (isArtist 
             ? `/artist/${post.artist_slug || post.artist_id}` 
-            : `/${post.works?.work_type || 'work'}/${post.works?.slug || post.work_id}`)
+            : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
       const imageUrl = isArtist
         ? (post.artist_profile_path

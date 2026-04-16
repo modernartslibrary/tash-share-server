@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 const RESERVED_TYPES = new Set([
   "u",
+  "profile",
   "post",
   "list",
   "movie",
@@ -29,5 +30,5 @@ export default async function LegacyProfilePage({
     redirect("/");
   }
 
-  redirect(`/u/${encodeURIComponent(decodedIdentifier)}`);
+  redirect(`/profile/${encodeURIComponent(decodedIdentifier)}`);
 }

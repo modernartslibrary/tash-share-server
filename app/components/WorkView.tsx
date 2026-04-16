@@ -295,7 +295,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
       {data.parent_album_cache && (
         <div className="px-5 mb-8">
           <Link
-            href={`/album/${data.parent_album_cache.slug || data.parent_album_cache.id}`}
+            href={`/work/${data.parent_album_cache.slug || data.parent_album_cache.id}`}
             className="link-trigger flex items-center transition-colors cursor-pointer"
           >
             <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">

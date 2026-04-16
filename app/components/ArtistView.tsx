@@ -72,7 +72,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
             {displayWorks.slice(0, 7).map((work: any) => (
               <Link
                 key={work.id}
-                href={`/${work.work_type || 'work'}/${work.slug || work.id}`}
+                href={`/work/${work.slug || work.id}`}
                 className="link-trigger flex flex-col group cursor-pointer"
                 style={{ marginBottom: '12px' }}
               >

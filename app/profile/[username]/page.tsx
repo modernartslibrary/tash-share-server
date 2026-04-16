@@ -16,86 +16,27 @@ const cachedFetchProfile = cache(
     username: string,
   ): Promise<{ data: Profile | null; error: string | null }> {
     try {
-      if (!SUPABASE_URL) return { data: null, error: "Config Missing" };
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const adminClient = createClient(
-        SUPABASE_URL,
-        serviceRoleKey || SUPABASE_ANON_KEY,
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        return { data: null, error: "Config Missing" };
+      }
+      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const { data: profileData, error } = await client.rpc(
+        "get_public_profile_by_username",
+        {
+          p_username: username,
+        },
       );
 
-      const { data: profile } = await adminClient
-        .from("profiles")
-        .select(
-          "id, username, nickname, bio, avatar_url, followers_count, following_count, works_count, is_private, role",
-        )
-        .eq("is_private", false)
-        .ilike("username", username)
-        .maybeSingle();
-
-      if (profile) {
-        const [posts, lists, workLikes, artistLikes] = await Promise.all([
-          adminClient
-            .from("posts")
-            .select(
-              "*, works(slug, image_url, work_type, work_title, artist_name, work_year)",
-            )
-            .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
-            .limit(18),
-          adminClient.rpc("get_user_lists", {
-            p_user_id: profile.id,
-            p_limit: 20,
-            p_offset: 0,
-          }),
-          adminClient
-            .from("work_likes")
-            .select(
-              "*, works(slug, image_url, work_type, work_title, artist_name, work_year)",
-            )
-            .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
-            .limit(30),
-          adminClient
-            .from("artist_likes")
-            .select("*, artists(id, slug, name, profile_path, birth_date)")
-            .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
-            .limit(20),
-        ]);
-
-        const combinedArchives = [
-          ...(workLikes.data || []).map((item) => ({
-            ...item,
-            item_type: "work" as const,
-            created_at: item.created_at,
-          })),
-          ...(artistLikes.data || []).map((item) => ({
-            id: `artist-${item.artist_id}`,
-            item_type: "artist" as const,
-            artist_id: item.artist_id,
-            artist_name: item.artists?.name,
-            artist_profile_path: item.artists?.profile_path,
-            artist_birth_date: item.artists?.birth_date,
-            artist_slug: item.artists?.slug,
-            created_at: item.created_at,
-          })),
-        ].sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
-
-        return {
-          data: {
-            ...profile,
-            initial_posts: posts.data || [],
-            initial_lists: lists.data || [],
-            initial_archives: combinedArchives,
-          },
-          error: null,
-        };
+      if (error) {
+        return { data: null, error: error.message };
       }
 
-      return { data: null, error: "not_found" };
+      if (!profileData) {
+        return { data: null, error: "not_found" };
+      }
+
+      return { data: profileData as Profile, error: null };
     } catch (err) {
       return { data: null, error: String(err) };
     }
@@ -124,10 +65,15 @@ export async function generateMetadata({
   return {
     title,
     description,
-    openGraph: { title, description, images: [{ url: image }], type: "website" },
+    openGraph: {
+      title,
+      description,
+      images: [{ url: image }],
+      type: "website",
+    },
     twitter: { card: "summary_large_image", title, description, images: [image] },
     other: {
-      "apple-itunes-app": `app-id=6755390469, app-argument=https://open.tash.kr/open-app/u/${decodedUsername}`,
+      "apple-itunes-app": `app-id=6755390469, app-argument=https://open.tash.kr/open-app/profile/${decodedUsername}`,
     },
   };
 }

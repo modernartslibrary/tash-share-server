@@ -19,167 +19,55 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const cachedFetchContent = cache(
   async function fetchContent(identifier: string, slug: string): Promise<{ data: TASHData | null; error: string | null }> {
     try {
-      if (!SUPABASE_URL) return { data: null, error: "Config Missing" };
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const adminClient = createClient(SUPABASE_URL, serviceRoleKey || SUPABASE_ANON_KEY);
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        return { data: null, error: "Config Missing" };
+      }
+      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
+        ? "work"
+        : identifier;
 
       let data: any = null;
+      let errorMessage: string | null = null;
 
-      switch (identifier) {
-        case 'work':
-        case 'movie':
-        case 'tv':
-        case 'track':
-        case 'album':
-        case 'book': {
-          let query = adminClient
-            .from("works")
-            .select(`
-              id, slug, work_title, artist_name, display_artist_name, work_year, image_url, work_type,
-              biography, runtime_minutes, total_episodes, genres, production_countries, tracks_cache, parent_album_cache,
-              work_artist (
-                role,
-                artist_order,
-                character_name,
-                artists (
-                  id,
-                  slug,
-                  name,
-                  profile_path
-                )
-              )
-            `)
-            .eq("slug", slug);
-
-          if (identifier !== 'work') {
-            query = query.eq("work_type", identifier);
-          }
-
-          const { data: work } = await query.maybeSingle();
-          
-          if (work && work.work_artist) {
-            (work as any).credits = (work.work_artist as any[]).map((wa: any) => ({
-              id: wa.artists?.id || '',
-              slug: wa.artists?.slug,
-              name: wa.artists?.name || 'Unknown',
-              profile_path: wa.artists?.profile_path,
-              role: wa.role,
-              character_name: wa.character_name
-            }));
-          }
-
-          if (work) {
-            // 평점 집계: posts 테이블에서 해당 작품의 모든 별점을 가져와 평균과 개수 계산
-            const { data: ratingData } = await adminClient
-              .from("posts")
-              .select("rating")
-              .eq("work_id", work.id)
-              .not("rating", "is", null);
-
-            if (ratingData && ratingData.length > 0) {
-              const ratings = ratingData.map((p: any) => p.rating).filter(Boolean);
-              if (ratings.length > 0) {
-                (work as any).rating_count = ratings.length;
-                (work as any).rating_avg = ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
-              }
-            }
-          }
-          
-          data = work;
+      switch (normalizedIdentifier) {
+        case 'work': {
+          const { data: workData, error } = await client.rpc("get_public_work_by_slug", {
+            p_slug: slug,
+          });
+          data = workData;
+          errorMessage = error?.message || null;
           break;
         }
-
         case 'artist': {
-          // Artist는 RPC 대신 직접 테이블 조회 (slug 컬럼 사용)
-          // RPC get_artist_share_payload는 id 기반이므로 slug 대응이 필요할 수 있으나,
-          // 여기서는 우선 slug로 검색하여 id를 얻은 뒤 RPC를 호출하거나, 직접 조인합니다.
-          const { data: artistInfo } = await adminClient
-            .from("artists")
-            .select("id")
-            .eq("slug", slug)
-            .maybeSingle();
-          
-          if (artistInfo) {
-            const { data: artistPayload } = await adminClient
-              .rpc("get_artist_share_payload", { p_artist_id: artistInfo.id });
-            
-            // RPC 결과에 slug가 없을 수 있으므로 직접 주입
-            if (artistPayload) {
-              artistPayload.slug = slug;
-            }
-            data = artistPayload;
-          }
+          const { data: artistData, error } = await client.rpc("get_public_artist_by_slug", {
+            p_slug: slug,
+          });
+          data = artistData;
+          errorMessage = error?.message || null;
           break;
         }
-
         case 'post': {
-          const { data: post } = await adminClient
-            .from("posts")
-            .select("*, profiles!inner(id, username, avatar_url, is_private), works(id, slug, image_url, work_type, work_title, artist_name, work_year)")
-            .eq("slug", slug)
-            .eq("profiles.is_private", false)
-            .maybeSingle();
-
-          if (post) {
-            const { data: comments } = await adminClient
-              .from("post_comments")
-              .select("*, profiles!inner(id, username, avatar_url, is_private)")
-              .eq("post_id", post.id)
-              .eq("profiles.is_private", false)
-              .order("created_at", { ascending: true });
-
-            if (comments) {
-              const commentMap = new Map();
-              const rootComments: any[] = [];
-              comments.forEach((c: any) => {
-                c.replies = [];
-                commentMap.set(c.id, c);
-              });
-              comments.forEach((c: any) => {
-                if (c.parent_id && commentMap.has(c.parent_id)) {
-                  commentMap.get(c.parent_id).replies.push(c);
-                } else {
-                  rootComments.push(c);
-                }
-              });
-              post.comments = rootComments;
-            }
-            data = post;
-          }
+          const { data: postData, error } = await client.rpc("get_public_post_by_slug", {
+            p_slug: slug,
+          });
+          data = postData;
+          errorMessage = error?.message || null;
           break;
         }
-
         case 'list': {
-          const { data: list } = await adminClient
-            .from("lists")
-            .select("*, profiles!inner(*)")
-            .eq("slug", slug)
-            .eq("profiles.is_private", false)
-            .maybeSingle();
-
-          if (list) {
-            const { data: listItems } = await adminClient
-              .from("list_items")
-              .select("*, works(*)")
-              .eq("list_id", list.id)
-              .order("order_index", { ascending: true });
-
-            if (listItems) {
-              list.items = listItems.map((item: any) => item.works).filter(Boolean);
-              const workCounts: Record<string, number> = {};
-              list.items.forEach((work: any) => {
-                if (work.work_type) {
-                  workCounts[work.work_type] = (workCounts[work.work_type] || 0) + 1;
-                }
-              });
-              list.work_counts = workCounts;
-            }
-            data = list;
-          }
+          const { data: listData, error } = await client.rpc("get_public_list_by_slug", {
+            p_slug: slug,
+          });
+          data = listData;
+          errorMessage = error?.message || null;
           break;
         }
+        default:
+          return { data: null, error: "Unsupported Identifier" };
       }
 
+      if (errorMessage) return { data: null, error: errorMessage };
       if (!data) return { data: null, error: 'not_found' };
       return { data, error: null };
     } catch (err) {
@@ -191,6 +79,9 @@ const cachedFetchContent = cache(
 export async function generateMetadata({ params }: { params: Promise<{ identifier: string; slug: string }> }): Promise<Metadata> {
   const { identifier, slug } = await params;
   const { data } = await cachedFetchContent(identifier, slug);
+  const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
+    ? "work"
+    : identifier;
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
@@ -219,11 +110,7 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
     }
   }
 
-  let appPath = `/open-app/${identifier}/${slug}`;
-  if (identifier === "work") {
-    const workId = data && "id" in data ? data.id : slug;
-    appPath = `/open-app/work/${workId}?slug=${slug}`;
-  }
+  const appPath = `/open-app/${normalizedIdentifier}/${slug}`;
 
   return {
     title,
@@ -239,9 +126,12 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
 export default async function SharedItemPage({ params }: { params: Promise<{ identifier: string; slug: string }> }) {
   const { identifier, slug } = await params;
   const { data } = await cachedFetchContent(identifier, slug);
+  const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
+    ? "work"
+    : identifier;
 
-  if (identifier === "work" && data && "work_type" in data && typeof data.work_type === "string") {
-    redirect(`/${data.work_type}/${encodeURIComponent(slug)}`);
+  if (normalizedIdentifier === "work" && identifier !== "work") {
+    redirect(`/work/${encodeURIComponent(slug)}`);
   }
 
   if (!data) {
@@ -260,7 +150,7 @@ export default async function SharedItemPage({ params }: { params: Promise<{ ide
   }
 
   return (
-    <SharePageClient type={identifier} id={slug} slug={slug}>
+    <SharePageClient type={normalizedIdentifier} id={slug} slug={slug}>
       {["work", "movie", "tv", "track", "album", "book"].includes(identifier) && <WorkView data={data as Work} />}
       {identifier === 'post' && <PostView data={data as Post} />}
       {identifier === 'artist' && <ArtistView data={data as Artist} />}

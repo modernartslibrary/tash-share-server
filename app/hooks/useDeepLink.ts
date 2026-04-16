@@ -28,7 +28,7 @@ export function useDeepLink() {
       normalizedType === 'home' || !id
         ? `https://open.tash.kr/open-app/home`
         : normalizedType === 'profile'
-          ? `https://open.tash.kr/open-app/u/${id}?${queryString}`
+          ? `https://open.tash.kr/open-app/profile/${id}?${queryString}`
           : `https://open.tash.kr/open-app/${normalizedType}/${id}?${queryString}`;
 
     // Universal Link 직접 호출 (커스텀 스킴·타이머·Visibility API 불필요)
