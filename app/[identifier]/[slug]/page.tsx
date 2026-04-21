@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
-  let image = "https://open.tash.kr/icons/app_logo.png";
+  let image = "https://link.tash.kr/icons/app_logo.png";
 
   if (data) {
     if (["work", "movie", "tv", "track", "album", "book"].includes(identifier)) {
@@ -136,7 +136,11 @@ export default async function SharedItemPage({ params }: { params: Promise<{ ide
 
   if (!data) {
     return (
-      <SharePageClient type="home" id="">
+      <SharePageClient
+        type={normalizedIdentifier}
+        id={slug}
+        slug={slug}
+      >
         <div className="flex flex-col items-center justify-center min-h-[70vh] px-5 text-center">
           <h1 className="text-xl font-bold mb-3 tracking-tight">콘텐츠를 찾을 수 없습니다</h1>
           <p className="text-[14px] text-gray-500 mb-10">링크가 올바르지 않거나 삭제된 콘텐츠입니다.</p>

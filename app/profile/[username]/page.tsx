@@ -54,7 +54,7 @@ export async function generateMetadata({
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
-  let image = "https://open.tash.kr/icons/app_logo.png";
+  let image = "https://link.tash.kr/icons/app_logo.png";
 
   if (data) {
     title = `${data.username}님의 프로필`;
@@ -108,7 +108,7 @@ export default async function ProfilePage({
 
   if (!data) {
     return (
-      <SharePageClient type="home" id="">
+      <SharePageClient type="profile" id={decodedUsername} slug={decodedUsername}>
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-5 text-center">
           <h1 className="mb-3 text-xl font-bold tracking-tight">
             콘텐츠를 찾을 수 없습니다
