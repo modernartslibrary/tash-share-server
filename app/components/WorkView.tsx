@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Work, Credit, Track } from '../types';
-import { resolveImageUrl, resolveProfileImageUrl } from '../utils/imageUtils';
+import { Work, Credit } from '../types';
+import { ArtistFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 /**
  * 작품 상세 보기 컴포넌트
@@ -55,8 +55,8 @@ function MovieLayout({
       {/* 1. 포스터 영역 */}
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-16">
         <div className="w-[190px] sm:w-[240px] aspect-[2/3] relative overflow-hidden border border-gray-100">
-          <img
-            src={resolveImageUrl(data.image_url)}
+          <WorkFallbackImage
+            src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
           />
@@ -126,8 +126,8 @@ function MovieLayout({
               >
                 {/* 인물 프로필 이미지 */}
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <img
-                    src={resolveProfileImageUrl(credit.profile_path)}
+                  <ArtistFallbackImage
+                    src={credit.profile_path}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
@@ -155,8 +155,8 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
           className="aspect-square relative overflow-hidden border border-gray-100 mx-auto"
           style={{ width: '260px', height: '260px' }}
         >
-          <img
-            src={resolveImageUrl(data.image_url)}
+          <WorkFallbackImage
+            src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
           />
@@ -232,8 +232,8 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                 className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <img
-                    src={resolveProfileImageUrl(credit.profile_path)}
+                  <ArtistFallbackImage
+                    src={credit.profile_path}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
@@ -260,8 +260,8 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
           className="aspect-square relative overflow-hidden border border-gray-100"
           style={{ width: '260px', height: '260px' }}
         >
-          <img
-            src={resolveImageUrl(data.image_url)}
+          <WorkFallbackImage
+            src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
           />
@@ -299,7 +299,11 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
             className="link-trigger flex items-center transition-colors cursor-pointer"
           >
             <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
-              <img src={resolveImageUrl(data.parent_album_cache.poster_path)} className="w-full h-full object-cover" alt="album cover" />
+              <WorkFallbackImage
+                src={data.parent_album_cache.poster_path}
+                className="w-full h-full object-cover"
+                alt="album cover"
+              />
             </div>
             <div className="flex flex-col pl-4 min-w-0">
               <span className="text-[15px] font-normal text-black truncate tracking-tight">{data.parent_album_cache.title}</span>
@@ -320,8 +324,8 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                 className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <img
-                    src={resolveProfileImageUrl(credit.profile_path)}
+                  <ArtistFallbackImage
+                    src={credit.profile_path}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
@@ -344,9 +348,9 @@ function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cred
     <div className="flex flex-col bg-white">
       {/* Cover */}
       <div className="flex justify-center pt-8 pb-6 px-5">
-        <div className="w-[170px] aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50">
-          <img
-            src={resolveImageUrl(data.image_url)}
+      <div className="w-[170px] aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50">
+          <WorkFallbackImage
+            src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
           />
@@ -383,8 +387,8 @@ function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cred
                 className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <img
-                    src={resolveProfileImageUrl(credit.profile_path)}
+                  <ArtistFallbackImage
+                    src={credit.profile_path}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     alt={credit.name}
                   />
@@ -406,7 +410,11 @@ function DefaultLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col items-center py-10 px-5">
       <div className="w-48 aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100">
-        <img src={resolveImageUrl(data.image_url)} className="w-full h-full object-cover" alt={data.work_title} />
+        <WorkFallbackImage
+          src={data.image_url}
+          className="w-full h-full object-cover"
+          alt={data.work_title}
+        />
       </div>
       <h1 className="text-2xl font-bold mb-1 text-center">{data.work_title}</h1>
       <p className="text-gray-500 mb-8">{data.artist_name}</p>
@@ -564,13 +572,6 @@ function getRoleLabel(role: string | null | undefined, characterName?: string) {
     case 'author': return '작가';
     default: return role;
   }
-}
-
-function formatDuration(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 /**

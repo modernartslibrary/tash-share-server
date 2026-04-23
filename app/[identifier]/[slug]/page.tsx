@@ -27,7 +27,7 @@ const cachedFetchContent = cache(
         ? "work"
         : identifier;
 
-      let data: any = null;
+      let data: TASHData | null = null;
       let errorMessage: string | null = null;
 
       switch (normalizedIdentifier) {

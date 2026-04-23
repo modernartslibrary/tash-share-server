@@ -2,9 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Post, List, Profile } from '../types';
-import { resolveImageUrl, resolveProfileImageUrl } from '../utils/imageUtils';
+import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 interface ProfileViewProps {
   data: Profile;
@@ -12,17 +12,20 @@ interface ProfileViewProps {
 
 export default function ProfileView({ data }: ProfileViewProps) {
   const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const initialPostsView = searchParams.get('posts_view');
+  const initialArchivesView = searchParams.get('archives_view');
 
   // URL 파라미터에서 초기 상태 읽기
   const [activeTab, setActiveTab] = useState<'posts' | 'lists' | 'archives'>(
-    () => (searchParams.get('tab') as any) || 'posts'
+    () => (initialTab === 'lists' || initialTab === 'archives' ? initialTab : 'posts')
   );
   const [activeFilter, setActiveFilter] = useState(() => searchParams.get('filter') || '');
   const [postsView, setPostsView] = useState<'grid' | 'list'>(
-    () => (searchParams.get('posts_view') as any) || 'grid'
+    () => (initialPostsView === 'list' ? 'list' : 'grid')
   );
   const [archivesView, setArchivesView] = useState<'grid' | 'list'>(
-    () => (searchParams.get('archives_view') as any) || 'grid'
+    () => (initialArchivesView === 'list' ? 'list' : 'grid')
   );
 
   const viewType = activeTab === 'archives' ? archivesView : postsView;
@@ -228,18 +231,23 @@ const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) 
             ? `/artist/${post.artist_slug || post.artist_id}` 
             : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
-      const imageUrl = isArtist
-        ? resolveProfileImageUrl(post.artist_profile_path)
-        : resolveImageUrl(post.works?.image_url || '/icons/default_profile.jpg');
 
       return (
         <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
           <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
-            <img
-              src={imageUrl}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              alt={isArtist ? (post.artist_name || "artist") : (post.works?.work_title || "post thumbnail")}
-            />
+            {isArtist ? (
+              <ArtistFallbackImage
+                src={post.artist_profile_path}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt={post.artist_name || "artist"}
+              />
+            ) : (
+              <WorkFallbackImage
+                src={post.works?.image_url}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt={post.works?.work_title || "post thumbnail"}
+              />
+            )}
           </div>
         </Link>
       );
@@ -256,18 +264,25 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
             ? `/artist/${post.artist_slug || post.artist_id}` 
             : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
-      const imageUrl = isArtist
-        ? (post.artist_profile_path
-          ? (post.artist_profile_path.startsWith('http') ? post.artist_profile_path : `https://image.tmdb.org/t/p/w200${post.artist_profile_path}`)
-          : '/icons/default_profile.jpg')
-        : (post.works?.image_url || '/icons/default_profile.jpg');
 
       return (
         <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
           <div className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] cursor-pointer active:bg-gray-50 transition-colors`}>
             <div className="flex items-center mb-0.5 relative">
               <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
-                <img src={imageUrl} className="w-full h-full object-cover border border-gray-100" alt={isArtist ? post.artist_name : post.works?.work_title} />
+                {isArtist ? (
+                  <ArtistFallbackImage
+                    src={post.artist_profile_path}
+                    className="w-full h-full object-cover border border-gray-100"
+                    alt={post.artist_name || "artist"}
+                  />
+                ) : (
+                  <WorkFallbackImage
+                    src={post.works?.image_url}
+                    className="w-full h-full object-cover border border-gray-100"
+                    alt={post.works?.work_title || "post thumbnail"}
+                  />
+                )}
               </div>
               <div className="flex flex-col flex-1 min-w-0 gap-0.5">
                 <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
@@ -377,8 +392,8 @@ const ListSection = ({ lists }: { lists: List[] }) => {
       {(lists || []).map((list) => (
         <Link key={list.id} href={`/list/${list.slug || list.id}`}>
           <div className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors cursor-pointer">
-            <img
-              src={resolveImageUrl(list.cover_url || '/icons/default_profile.jpg')}
+            <ListFallbackImage
+              src={list.cover_url}
               className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
               alt={list.title || "list cover"}
             />

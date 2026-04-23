@@ -1,42 +1,32 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Artist, Work } from '../types';
-import { resolveImageUrl, resolveProfileImageUrl } from '../utils/imageUtils';
+import { ArtistFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 interface ArtistViewProps {
   data: Artist;
 }
 
 export default function ArtistView({ data }: ArtistViewProps) {
-  const router = useRouter();
-
-  const profilePath = data.profile_path;
-  const imageUrl = profilePath
-    ? (profilePath.startsWith('http') ? profilePath : `https://image.tmdb.org/t/p/original${profilePath}`)
-    : null;
-
   // 표시할 작품 목록 선정 (initial_works가 있으면 우선, 없으면 representative_works 사용)
-  const displayWorks = (data.initial_works && data.initial_works.length > 0) 
+  const displayWorks: Work[] = (data.initial_works && data.initial_works.length > 0) 
     ? data.initial_works 
-    : (data.representative_works || []);
+    : ((data.representative_works || []) as Work[]);
 
   return (
-    <div className={`flex flex-col bg-white ${!imageUrl ? 'pt-8' : ''}`}>
+    <div className="flex flex-col bg-white">
       {/* Hero Header */}
-      {imageUrl && (
-        <div className="relative w-full sm:max-w-[450px] sm:mx-auto aspect-square overflow-hidden mb-4">
-          <img
-            src={imageUrl}
-            className="w-full h-full object-cover"
-            alt={data.name}
-          />
-          {/* Subtle Gradient Overlay for Premium Feel */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
-        </div>
-      )}
+      <div className="relative w-full sm:max-w-[450px] sm:mx-auto aspect-square overflow-hidden mb-4">
+        <ArtistFallbackImage
+          src={data.profile_path}
+          className="w-full h-full object-cover"
+          alt={data.name}
+        />
+        {/* Subtle Gradient Overlay for Premium Feel */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 pointer-events-none" />
+      </div>
 
       {/* Name Section */}
       <div className="px-6 mb-4">
@@ -69,7 +59,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
             <h3 className="text-[20px] font-bold text-black tracking-tight">작품들</h3>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-3 gap-y-0" style={{ rowGap: '0px' }}>
-            {displayWorks.slice(0, 7).map((work: any) => (
+            {displayWorks.slice(0, 7).map((work) => (
               <Link
                 key={work.id}
                 href={`/work/${work.slug || work.id}`}
@@ -80,18 +70,11 @@ export default function ArtistView({ data }: ArtistViewProps) {
                   className="aspect-square relative overflow-hidden border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
                   style={{ aspectRatio: '1 / 1' }}
                 >
-                  {work.image_url && (
-                    <img
-                      src={resolveImageUrl(work.image_url)}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      alt={work.work_title}
-                    />
-                  )}
-                  {!work.image_url && (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-[10px] text-gray-300">NO IMAGE</span>
-                    </div>
-                  )}
+                  <WorkFallbackImage
+                    src={work.image_url}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    alt={work.work_title}
+                  />
                 </div>
                 <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter">
                   {work.work_title}
@@ -106,17 +89,6 @@ export default function ArtistView({ data }: ArtistViewProps) {
       )}
     </div>
   );
-}
-
-function getWorkTypeLabel(type: string) {
-  switch (type.toLowerCase()) {
-    case 'movie': return 'MOVIE';
-    case 'tv': return 'TV';
-    case 'album': return 'ALBUM';
-    case 'track': return 'TRACK';
-    case 'book': return 'BOOK';
-    default: return 'WORK';
-  }
 }
 
 /**

@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { List, Work } from '../types';
-import { resolveImageUrl } from '../utils/imageUtils';
+import { List } from '../types';
+import { ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 interface ListViewProps {
   data: List;
@@ -33,8 +33,8 @@ export default function ListView({ data }: ListViewProps) {
       {/* 1. 리스트 썸네일 (Large, Centered) */}
       <div className="flex justify-center pt-8 pb-6 px-10">
         <div className="w-full max-w-[320px] aspect-square overflow-hidden shadow-sm">
-          <img
-            src={data.cover_url || '/icons/default_profile.jpg'}
+          <ListFallbackImage
+            src={data.cover_url}
             className="w-full h-full object-cover"
             alt={data.title}
           />
@@ -80,8 +80,8 @@ export default function ListView({ data }: ListViewProps) {
             >
               {/* 작품 썸네일 */}
               <div className="w-[60px] h-[60px] overflow-hidden mr-4 flex-shrink-0">
-                <img
-                  src={resolveImageUrl(work.image_url || '/icons/default_profile.jpg')}
+                <WorkFallbackImage
+                  src={work.image_url}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt={work.work_title}
                 />
