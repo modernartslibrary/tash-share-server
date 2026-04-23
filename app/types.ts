@@ -54,8 +54,50 @@ export interface Work {
     poster_path: string;
     artist_names_display: string;
     release_date?: string;
-    total_tracks?: number;
+  total_tracks?: number;
   };
+  posts_preview?: SharePreviewPost[];
+  like_users_preview?: SharePreviewUser[];
+  lists_preview?: SharePreviewList[];
+}
+
+export interface SharePreviewUser {
+  id: string;
+  username?: string;
+  nickname?: string;
+  avatar_url?: string;
+}
+
+export interface SharePreviewWork {
+  id: string;
+  slug?: string;
+  work_title: string;
+  artist_name: string;
+  work_year?: string | number;
+  image_url?: string;
+  work_type?: 'album' | 'track' | 'movie' | 'tv' | 'book';
+}
+
+export interface SharePreviewPost {
+  id: string;
+  slug?: string;
+  content?: string;
+  created_at: string;
+  rating?: number;
+  profiles?: {
+    id: string;
+    username?: string;
+    nickname?: string;
+    avatar_url?: string;
+  };
+}
+
+export interface SharePreviewList {
+  id: string;
+  slug?: string;
+  title: string;
+  cover_url?: string;
+  username?: string;
 }
 
 export interface Profile {
@@ -131,7 +173,8 @@ export interface Artist {
   death_date?: string;
   birth_place?: string;
   initial_works?: Work[];
-  representative_works?: any[]; // JSONB data (compact works)
+  representative_works?: SharePreviewWork[];
+  like_users_preview?: SharePreviewUser[];
 }
 
 export type TASHData = Work | Profile | Post | List | Artist;

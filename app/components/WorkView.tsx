@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { Work, Credit } from '../types';
-import { ArtistFallbackImage, WorkFallbackImage } from './FallbackImage';
+import { Credit, SharePreviewList, SharePreviewPost, SharePreviewUser, Work } from '../types';
+import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
-/**
- * 작품 상세 보기 컴포넌트
- * 영화, TV, 앨범, 곡, 책 등 각 미디어 타입에 맞는 레이아웃을 렌더링합니다.
- */
 interface WorkViewProps {
   data: Work;
 }
@@ -16,8 +13,6 @@ interface WorkViewProps {
 export default function WorkView({ data }: WorkViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 영화/TV 등은 6구 큐레이션 로직을 적용합니다. 
-  // 펼쳐진 상태거나 6명 미만이면 전체 통합 리스트를 보여줍니다.
   const curatedCredits = (data.work_type === 'movie' || data.work_type === 'tv')
     ? getCuratedCredits(data.credits || [], isExpanded ? 0 : 6)
     : data.credits || [];
@@ -25,13 +20,20 @@ export default function WorkView({ data }: WorkViewProps) {
   switch (data.work_type?.toLowerCase()) {
     case 'movie':
     case 'tv':
-      return <MovieLayout data={data} curatedCredits={curatedCredits} isExpanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)} />;
+      return (
+        <MovieLayout
+          data={data}
+          curatedCredits={curatedCredits}
+          isExpanded={isExpanded}
+          onToggle={() => setIsExpanded(!isExpanded)}
+        />
+      );
     case 'album':
       return <AlbumLayout data={data} curatedCredits={curatedCredits} />;
     case 'track':
       return <TrackLayout data={data} curatedCredits={curatedCredits} />;
     case 'book':
-      return <BookLayout data={data} curatedCredits={curatedCredits} />;
+      return <BookLayout data={data} />;
     default:
       return <DefaultLayout data={data} />;
   }
@@ -46,13 +48,12 @@ function MovieLayout({
   data: Work;
   curatedCredits: Credit[];
   isExpanded: boolean;
-  onToggle: () => void
+  onToggle: () => void;
 }) {
   const hasMore = (data.credits?.length || 0) > curatedCredits.length || isExpanded;
 
   return (
     <div className="flex flex-col bg-white">
-      {/* 1. 포스터 영역 */}
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-16">
         <div className="w-[190px] sm:w-[240px] aspect-[2/3] relative overflow-hidden border border-gray-100">
           <WorkFallbackImage
@@ -63,7 +64,6 @@ function MovieLayout({
         </div>
       </div>
 
-      {/* 2. 메인 정보 (제목, 별점, 요약) */}
       <div className="px-5 mb-4">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tighter">
@@ -71,7 +71,7 @@ function MovieLayout({
           </h1>
           {data.rating_count && data.rating_count > 0 ? (
             <div className="flex items-center text-[13px] font-bold text-black mt-1">
-              <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-[2px]" alt="star" />
+              <Image src="/icons/star_icon.png" className="mr-[2px]" alt="star" width={11} height={11} />
               <span>{data.rating_avg?.toFixed(1)}</span>
               <span className="text-black ml-[2px] text-[13px]">({data.rating_count})</span>
             </div>
@@ -94,7 +94,6 @@ function MovieLayout({
         </div>
       </div>
 
-      {/* 3. 줄거리 (Overview) */}
       {data.biography && (
         <div className="px-5 mb-8">
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
@@ -103,7 +102,6 @@ function MovieLayout({
         </div>
       )}
 
-      {/* 4. 크레딧 (배우, 감독 등 인물 정보) → 필터링된 6인 또는 전체 노출 */}
       {curatedCredits.length > 0 && (
         <div className="px-5 mb-12">
           <div className="flex items-center gap-3 mb-4">
@@ -124,7 +122,6 @@ function MovieLayout({
                 href={`/artist/${credit.slug || credit.id}`}
                 className="link-trigger flex items-center gap-2 group cursor-pointer"
               >
-                {/* 인물 프로필 이미지 */}
                 <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                   <ArtistFallbackImage
                     src={credit.profile_path}
@@ -132,7 +129,6 @@ function MovieLayout({
                     alt={credit.name}
                   />
                 </div>
-                {/* 이름 및 역할 설명 */}
                 <div className="flex flex-col min-w-0">
                   <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
                   <span className="text-[12px] text-gray-400 truncate">{credit.role}</span>
@@ -142,6 +138,8 @@ function MovieLayout({
           </div>
         </div>
       )}
+
+      <WorkPreviewSections data={data} />
     </div>
   );
 }
@@ -149,7 +147,6 @@ function MovieLayout({
 function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
   return (
     <div className="flex flex-col bg-white">
-      {/* Cover */}
       <div className="flex justify-center pt-8 pb-6 px-6">
         <div
           className="aspect-square relative overflow-hidden border border-gray-100 mx-auto"
@@ -163,7 +160,6 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       </div>
 
-      {/* Main Info */}
       <div className="px-5 mb-4">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
@@ -180,7 +176,6 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       </div>
 
-      {/* Biography */}
       {data.biography && (
         <div className="px-5 mb-8">
           <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
@@ -189,14 +184,13 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       )}
 
-      {/* Tracks → 앱 유도 링크 */}
       {data.tracks_cache && data.tracks_cache.length > 0 && (
         <div className="px-5 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-[14px] font-normal text-black">트랙 리스트</h3>
           </div>
           <div className="flex flex-col">
-            {(data.tracks_cache || []).map((track) => (
+            {data.tracks_cache.map((track) => (
               <div
                 key={track.id}
                 className="link-trigger flex items-start py-0.5 gap-2 cursor-pointer"
@@ -208,10 +202,12 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
-                  <img
+                  <Image
                     src="/icons/backIcon_right.png"
-                    className="w-[10px] h-[10px] object-contain"
                     alt="arrow"
+                    width={10}
+                    height={10}
+                    className="object-contain"
                   />
                 </div>
               </div>
@@ -220,7 +216,6 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       )}
 
-      {/* 4. 크레딧 (아티스트 정보) */}
       {curatedCredits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
@@ -247,6 +242,8 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
           </div>
         </div>
       )}
+
+      <WorkPreviewSections data={data} />
     </div>
   );
 }
@@ -254,7 +251,6 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
 function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
   return (
     <div className="flex flex-col bg-white">
-      {/* Cover */}
       <div className="flex justify-center pt-8 pb-6 px-6">
         <div
           className="aspect-square relative overflow-hidden border border-gray-100"
@@ -268,7 +264,6 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       </div>
 
-      {/* Main Info */}
       <div className="px-5 mb-4">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
@@ -282,7 +277,6 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       </div>
 
-      {/* Biography */}
       {data.biography && (
         <div className="px-5 mb-8">
           <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
@@ -291,7 +285,6 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       )}
 
-      {/* Album Info → 앱 유도 링크 */}
       {data.parent_album_cache && (
         <div className="px-5 mb-8">
           <Link
@@ -313,7 +306,6 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
         </div>
       )}
 
-      {/* 3. 크레딧 (참여한 아티스트 정보) */}
       {curatedCredits.length > 0 && (
         <div className="px-5 mb-12">
           <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
@@ -339,16 +331,17 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
           </div>
         </div>
       )}
+
+      <WorkPreviewSections data={data} />
     </div>
   );
 }
 
-function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
+function BookLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
-      {/* Cover */}
       <div className="flex justify-center pt-8 pb-6 px-5">
-      <div className="w-[170px] aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50">
+        <div className="w-[170px] aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50">
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
@@ -357,7 +350,6 @@ function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cred
         </div>
       </div>
 
-      {/* Main Info */}
       <div className="px-5 mb-4">
         <h1 className="text-[26px] font-black text-black leading-[1.2] mb-2 tracking-tighter">
           {data.work_title}
@@ -367,7 +359,6 @@ function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cred
         </p>
       </div>
 
-      {/* Biography / Description */}
       {data.biography && (
         <div className="px-5 mb-8">
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap font-normal tracking-[-0.05em]">
@@ -376,64 +367,219 @@ function BookLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cred
         </div>
       )}
 
-      {/* 3. 크레딧 (저자 및 관련 인물 정보) */}
-      {curatedCredits.length > 0 && (
-        <div className="px-5 mb-12">
-          <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {curatedCredits.map((credit, idx) => (
-              <div
-                key={credit.id || `credit-${idx}`}
-                className="link-trigger flex items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <ArtistFallbackImage
-                    src={credit.profile_path}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    alt={credit.name}
-                  />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
-                  <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <WorkPreviewSections data={data} />
     </div>
   );
 }
 
 function DefaultLayout({ data }: { data: Work }) {
   return (
-    <div className="flex flex-col items-center py-10 px-5">
-      <div className="w-48 aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100">
-        <WorkFallbackImage
-          src={data.image_url}
-          className="w-full h-full object-cover"
-          alt={data.work_title}
-        />
+    <div className="flex flex-col bg-white">
+      <div className="flex flex-col items-center py-10 px-5">
+        <div className="w-48 aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100">
+          <WorkFallbackImage
+            src={data.image_url}
+            className="w-full h-full object-cover"
+            alt={data.work_title}
+          />
+        </div>
+        <h1 className="text-2xl font-bold mb-1 text-center">{data.work_title}</h1>
+        <p className="text-gray-500 mb-8">{data.artist_name}</p>
       </div>
-      <h1 className="text-2xl font-bold mb-1 text-center">{data.work_title}</h1>
-      <p className="text-gray-500 mb-8">{data.artist_name}</p>
+
+      <WorkPreviewSections data={data} />
     </div>
   );
 }
 
-// === New Utilities for Curated Credits ===
+function WorkPreviewSections({ data }: { data: Work }) {
+  const posts = data.posts_preview || [];
+  const likeUsers = data.like_users_preview || [];
+  const lists = data.lists_preview || [];
 
-/**
- * 영화/TV용 6구 큐레이션 알고리즘
- * 우선순위에 따라 최대 6명의 크레딧을 선정하거나 전체를 반환하며, 6구 모드에서는 빈자리는 후순위 스태프로 채웁니다.
- */
+  return (
+    <div className="px-5 pb-14">
+      <div className="mt-2">
+        <PreviewSectionTitle title="포스트" showMore />
+        {posts.length > 0 ? (
+          <div className="flex flex-col gap-5">
+            {posts.slice(0, 3).map((post) => (
+              <PreviewPostRow key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <EmptyPreviewText text="아직 포스트가 없습니다" />
+        )}
+      </div>
+
+      <div className="mt-10">
+        <PreviewSectionTitle title="이 작품을 아카이브한 사람" showMore />
+        {likeUsers.length > 0 ? (
+          <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="flex gap-4 min-w-max">
+              {likeUsers.slice(0, 7).map((user) => (
+                <PreviewUserCard key={user.id} user={user} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyPreviewText text="아직 이 작품을 아카이브한 사람이 없습니다" />
+        )}
+      </div>
+
+      <div className="mt-10">
+        <PreviewSectionTitle title="이 작품이 포함된 리스트" showMore />
+        {lists.length > 0 ? (
+          <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="flex gap-4 min-w-max">
+              {lists.slice(0, 7).map((list) => (
+                <PreviewListCard key={list.id} list={list} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyPreviewText text="아직 이 작품이 포함된 리스트가 없습니다" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewSectionTitle({ title, showMore = false }: { title: string; showMore?: boolean }) {
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <h3 className="text-[18px] font-bold text-black">
+        {title}
+      </h3>
+      {showMore && (
+        <button
+          type="button"
+          className="link-trigger text-[14px] text-gray-400 font-normal tracking-tight"
+        >
+          모두보기
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PreviewPostRow({ post }: { post: SharePreviewPost }) {
+  const username = post.profiles?.username || post.profiles?.nickname || 'Unknown';
+  const avatarAlt = post.profiles?.username || post.profiles?.nickname || 'profile';
+  const content = (
+    <div className="flex items-start gap-3">
+      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+        <ListFallbackImage
+          src={post.profiles?.avatar_url}
+          className="h-full w-full object-cover"
+          alt={avatarAlt}
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[15px] font-semibold text-black line-clamp-1">{username}</span>
+          <span className="text-[12px] text-gray-400 shrink-0">{formatTimeAgo(post.created_at)}</span>
+        </div>
+        <p className="text-[15px] leading-[1.45] text-[#1A1A1A] whitespace-pre-wrap line-clamp-2 tracking-tight">
+          {post.content?.trim() ? post.content : '내용이 없습니다'}
+        </p>
+      </div>
+    </div>
+  );
+
+  if (!post.slug && !post.id) {
+    return content;
+  }
+
+  return (
+    <Link href={`/post/${post.slug || post.id}`} className="link-trigger">
+      {content}
+    </Link>
+  );
+}
+
+function PreviewUserCard({ user }: { user: SharePreviewUser }) {
+  const label = user.username || user.nickname || 'Unknown';
+  const content = (
+    <div className="flex w-[76px] flex-col items-center text-center">
+      <div className="h-[64px] w-[64px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+        <ListFallbackImage
+          src={user.avatar_url}
+          className="h-full w-full object-cover"
+          alt={label}
+        />
+      </div>
+      <span className="mt-2 text-[13px] font-medium text-black line-clamp-1 w-full tracking-tight">
+        {label}
+      </span>
+    </div>
+  );
+
+  if (!user.username) {
+    return content;
+  }
+
+  return (
+    <Link href={`/profile/${user.username}`} className="link-trigger">
+      {content}
+    </Link>
+  );
+}
+
+function PreviewListCard({ list }: { list: SharePreviewList }) {
+  const content = (
+    <div className="flex w-[112px] sm:w-[126px] flex-col">
+      <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
+        <ListFallbackImage
+          src={list.cover_url}
+          className="h-full w-full object-cover"
+          alt={list.title}
+        />
+      </div>
+      <span className="mt-2 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
+        {list.title}
+      </span>
+      <span className="mt-1 text-[12px] text-gray-400 tracking-tight line-clamp-1">
+        {list.username || ''}
+      </span>
+    </div>
+  );
+
+  return (
+    <Link href={`/list/${list.slug || list.id}`} className="link-trigger">
+      {content}
+    </Link>
+  );
+}
+
+function EmptyPreviewText({ text }: { text: string }) {
+  return (
+    <p className="text-[15px] text-gray-400 leading-relaxed tracking-tight">
+      {text}
+    </p>
+  );
+}
+
+function formatTimeAgo(dateString: string | undefined) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInSeconds = Math.floor(diffInMs / 1000);
+
+  if (diffInSeconds < 60) return '방금 전';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}분 전`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}시간 전`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}일 전`;
+  if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)}개월 전`;
+  return `${Math.floor(diffInSeconds / 31536000)}년 전`;
+}
+
 function getCuratedCredits(credits: Credit[], limit: number = 0): Credit[] {
   if (!credits || credits.length === 0) return [];
 
   const artistMap = new Map<string, { credit: Credit; roles: Set<string> }>();
 
-  // 1. 인물별 역할 통합
   credits.forEach(c => {
     if (!artistMap.has(c.id)) {
       artistMap.set(c.id, { credit: { ...c }, roles: new Set() });
@@ -443,7 +589,6 @@ function getCuratedCredits(credits: Credit[], limit: number = 0): Credit[] {
 
   const uniqueArtists = Array.from(artistMap.values());
 
-  // 전체 모드 (limit === 0) 인 경우 역할 통합 상태로 전체 반환
   if (limit === 0) {
     return uniqueArtists.map(a => ({
       ...a.credit,
@@ -467,41 +612,34 @@ function getCuratedCredits(credits: Credit[], limit: number = 0): Credit[] {
     }
   };
 
-  // 2. 우선순위 패킹
-  // P1: 감독 / 각본 (최대 2명)
   addToSelection(uniqueArtists
     .filter(a => hasRole(a.roles, 'director', 'writing', 'screenplay', 'writer'))
     .slice(0, 2));
 
-  // P2: 배우 (최대 2명)
   if (selectedArtists.length < limit) {
     addToSelection(uniqueArtists
       .filter(a => hasRole(a.roles, 'cast', 'actor'))
       .slice(0, 2));
   }
 
-  // P3: 촬영 감독 (1명)
   if (selectedArtists.length < limit) {
     addToSelection(uniqueArtists
       .filter(a => hasRole(a.roles, 'cinematography', 'camera', 'photograph'))
       .slice(0, 1));
   }
 
-  // P4: 음악 감독 (1명)
   if (selectedArtists.length < limit) {
     addToSelection(uniqueArtists
       .filter(a => hasRole(a.roles, 'music', 'composer'))
       .slice(0, 1));
   }
 
-  // 3. 빈자리 채우기 (Backfill)
   const backfillOrder = ['editor', 'production design', 'art', 'costume', 'sound', 'producer'];
   for (const roleTask of backfillOrder) {
     if (selectedArtists.length >= limit) break;
     addToSelection(uniqueArtists.filter(a => hasRole(a.roles, roleTask)));
   }
 
-  // 최종 리스트 구성 및 역할 라벨 통합
   return selectedArtists.map(a => {
     return {
       ...a.credit,
@@ -510,9 +648,6 @@ function getCuratedCredits(credits: Credit[], limit: number = 0): Credit[] {
   });
 }
 
-/**
- * 수집된 역할들을 한글로 변환하고 "감독, 각본" 형태로 결합합니다.
- */
 function getMergedRoleLabel(roles: Set<string>): string {
   const labels = new Set<string>();
   const rolesArr = Array.from(roles);
@@ -532,10 +667,6 @@ function getMergedRoleLabel(roles: Set<string>): string {
   return result || Array.from(roles)[0] || '스태프';
 }
 
-// Helpers
-/**
- * 작품 타입별 한글 라벨 반환
- */
 function getCategoryLabel(type: string) {
   switch (type) {
     case 'movie': return '영화';
@@ -547,9 +678,6 @@ function getCategoryLabel(type: string) {
   }
 }
 
-/**
- * 역할 코드 -> 한글 역할명 변환 (감독, 작가, 배우 등)
- */
 function getRoleLabel(role: string | null | undefined, characterName?: string) {
   if (!role) return characterName || '';
   const roleLower = role.toLowerCase();
@@ -574,9 +702,6 @@ function getRoleLabel(role: string | null | undefined, characterName?: string) {
   }
 }
 
-/**
- * 러닝타임 포맷팅 (예: 125 -> 2시간 5분)
- */
 function formatRuntime(minutes: number | null | undefined) {
   if (!minutes) return '';
   const h = Math.floor(minutes / 60);
@@ -585,9 +710,6 @@ function formatRuntime(minutes: number | null | undefined) {
   return `${m}분`;
 }
 
-/**
- * 국가 코드 -> 한글 국가명 변환
- */
 function getCountryName(country: string) {
   if (!country) return '';
   const mapping: Record<string, string> = {

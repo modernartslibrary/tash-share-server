@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import AppDownloadPopup from './AppDownloadPopup';
 
 interface SharePageClientProps {
@@ -30,8 +31,9 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const trigger = target.closest('.link-trigger');
+      const detailLink = target.closest('a[href^="/work/"], a[href^="/artist/"]');
 
-      if (trigger) {
+      if (trigger || detailLink) {
         showPopup(e);
       }
     };
@@ -50,7 +52,7 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
       <header className="fixed top-0 left-0 right-0 h-14 bg-white/90 backdrop-blur-md flex items-center justify-between px-5 z-50 border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className="link-trigger cursor-pointer">
-            <img src="/icons/app_logo.png" className="h-5 object-contain" alt="tash" />
+            <Image src="/icons/app_logo.png" className="h-5 w-auto object-contain" alt="tash" width={64} height={20} />
           </div>
           <span className="text-[13px] font-medium text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
         </div>

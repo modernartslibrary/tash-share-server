@@ -1,39 +1,34 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import { Artist, Work } from '../types';
-import { ArtistFallbackImage, WorkFallbackImage } from './FallbackImage';
+import { Artist, SharePreviewUser, SharePreviewWork, Work } from '../types';
+import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 interface ArtistViewProps {
   data: Artist;
 }
 
 export default function ArtistView({ data }: ArtistViewProps) {
-  // 표시할 작품 목록 선정 (initial_works가 있으면 우선, 없으면 representative_works 사용)
-  const displayWorks: Work[] = (data.initial_works && data.initial_works.length > 0) 
-    ? data.initial_works 
-    : ((data.representative_works || []) as Work[]);
+  const displayWorks: SharePreviewWork[] = (data.initial_works && data.initial_works.length > 0)
+    ? data.initial_works.map(mapWorkToPreview)
+    : (data.representative_works || []);
+  const likeUsers = data.like_users_preview || [];
 
   return (
-    <div className="flex flex-col bg-white">
-      {/* Hero Header */}
+    <div className="flex flex-col bg-white pb-14">
       <div className="relative w-full sm:max-w-[450px] sm:mx-auto aspect-square overflow-hidden mb-4">
         <ArtistFallbackImage
           src={data.profile_path}
           className="w-full h-full object-cover"
           alt={data.name}
         />
-        {/* Subtle Gradient Overlay for Premium Feel */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 pointer-events-none" />
       </div>
 
-      {/* Name Section */}
       <div className="px-6 mb-4">
         <h1 className="text-[26px] font-black text-black tracking-tighter leading-tight mb-1.5">
           {data.name}
         </h1>
-        {/* Metadata: 生卒年, 出生地 */}
         {(data.birth_date || data.birth_place) && (
           <p className="text-[13px] text-gray-500 font-normal tracking-tight leading-snug">
             {data.birth_date && formatKoreanDate(data.birth_date)}
@@ -43,7 +38,6 @@ export default function ArtistView({ data }: ArtistViewProps) {
         )}
       </div>
 
-      {/* Biography */}
       {data.biography && (
         <div className="px-6 mb-8">
           <p className="text-[15px] text-black leading-relaxed whitespace-pre-wrap tracking-tight font-normal">
@@ -52,48 +46,123 @@ export default function ArtistView({ data }: ArtistViewProps) {
         </div>
       )}
 
-      {/* Works Section */}
-      {displayWorks.length > 0 && (
-        <div className="px-6 mb-20">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[20px] font-bold text-black tracking-tight">작품들</h3>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-3 gap-y-0" style={{ rowGap: '0px' }}>
-            {displayWorks.slice(0, 7).map((work) => (
-              <Link
-                key={work.id}
-                href={`/work/${work.slug || work.id}`}
-                className="link-trigger flex flex-col group cursor-pointer"
-                style={{ marginBottom: '12px' }}
-              >
-                <div
-                  className="aspect-square relative overflow-hidden border border-gray-100/50 mb-2.5 transition-transform active:scale-95"
-                  style={{ aspectRatio: '1 / 1' }}
+      <div className="px-6">
+        <PreviewSectionTitle title="작품들" showMore />
+        {displayWorks.length > 0 ? (
+          <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="flex gap-4 min-w-max">
+              {displayWorks.slice(0, 7).map((work) => (
+                <Link
+                  key={work.id}
+                  href={`/work/${work.slug || work.id}`}
+                  className="link-trigger flex w-[112px] sm:w-[126px] flex-col"
                 >
-                  <WorkFallbackImage
-                    src={work.image_url}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    alt={work.work_title}
-                  />
-                </div>
-                <div className="text-[13px] font-normal text-black line-clamp-1 leading-none tracking-tighter">
-                  {work.work_title}
-                </div>
-                <div className="text-[11px] text-gray-400 mt-0 font-light" style={{ marginTop: '4px' }}>
-                  {work.work_year}
-                </div>
-              </Link>
-            ))}
+                  <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
+                    <WorkFallbackImage
+                      src={work.image_url}
+                      className="w-full h-full object-cover"
+                      alt={work.work_title}
+                    />
+                  </div>
+                  <span className="mt-2 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
+                    {work.work_title}
+                  </span>
+                  <span className="mt-1 text-[12px] text-gray-400 tracking-tight">
+                    {work.work_year ?? ''}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <EmptyPreviewText text="등록된 대표작이 없습니다" />
+        )}
+      </div>
+
+      <div className="px-6 mt-9">
+        <PreviewSectionTitle title="이 아티스트를 아카이브에 담은 사람" showMore />
+        {likeUsers.length > 0 ? (
+          <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="flex gap-4 min-w-max">
+              {likeUsers.slice(0, 7).map((user) => (
+                <PreviewUserCard key={user.id} user={user} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyPreviewText text="아직 아카이브에 담은 사용자가 없습니다" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewSectionTitle({ title, showMore = false }: { title: string; showMore?: boolean }) {
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <h3 className="text-[20px] font-bold text-black tracking-tight">
+        {title}
+      </h3>
+      {showMore && (
+        <button
+          type="button"
+          className="link-trigger text-[14px] text-gray-400 font-normal tracking-tight"
+        >
+          모두보기
+        </button>
       )}
     </div>
   );
 }
 
-/**
- * 'YYYY-MM-DD' -> 'YYYY년 M월 D일' 변환
- */
+function PreviewUserCard({ user }: { user: SharePreviewUser }) {
+  const label = user.username || user.nickname || 'Unknown';
+  const content = (
+    <div className="flex w-[76px] flex-col items-center text-center">
+      <div className="h-[64px] w-[64px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+        <ListFallbackImage
+          src={user.avatar_url}
+          className="h-full w-full object-cover"
+          alt={label}
+        />
+      </div>
+      <span className="mt-2 text-[13px] font-medium text-black line-clamp-1 w-full tracking-tight">
+        {label}
+      </span>
+    </div>
+  );
+
+  if (!user.username) {
+    return content;
+  }
+
+  return (
+    <Link href={`/profile/${user.username}`} className="link-trigger">
+      {content}
+    </Link>
+  );
+}
+
+function EmptyPreviewText({ text }: { text: string }) {
+  return (
+    <p className="text-[15px] text-gray-400 leading-relaxed tracking-tight">
+      {text}
+    </p>
+  );
+}
+
+function mapWorkToPreview(work: Work): SharePreviewWork {
+  return {
+    id: work.id,
+    slug: work.slug,
+    work_title: work.work_title,
+    artist_name: work.artist_name,
+    work_year: work.work_year,
+    image_url: work.image_url,
+    work_type: work.work_type,
+  };
+}
+
 function formatKoreanDate(dateStr: string) {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-');

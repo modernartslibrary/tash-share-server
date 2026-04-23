@@ -1,11 +1,13 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import React, { ImgHTMLAttributes, SyntheticEvent, useState } from 'react';
+import Image, { type ImageProps } from 'next/image';
+import { useMemo, useState } from 'react';
 import { resolveImageUrl, resolveProfileImageUrl } from '../utils/imageUtils';
 
-type FallbackImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
+type FallbackImageProps = Omit<ImageProps, 'src' | 'alt' | 'fill' | 'width' | 'height'> & {
   src?: string | null;
+  alt: string;
+  sizes?: string;
 };
 
 type BaseImageProps = FallbackImageProps & {
@@ -18,29 +20,35 @@ function BaseFallbackImage({
   fallbackSrc,
   resolver,
   alt,
-  onError,
+  sizes = '100vw',
+  className,
   ...props
 }: BaseImageProps) {
-  const resolvedSrc = resolver(src);
+  const resolvedSrc = useMemo(() => resolver(src), [resolver, src]);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   const displaySrc =
     !resolvedSrc || failedSrc === resolvedSrc ? fallbackSrc : resolvedSrc;
 
-  const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleError = () => {
     if (resolvedSrc && failedSrc !== resolvedSrc) {
       setFailedSrc(resolvedSrc);
     }
-    onError?.(event);
   };
 
   return (
-    <img
-      {...props}
-      src={displaySrc}
-      alt={alt}
-      onError={handleError}
-    />
+    <span className="relative block h-full w-full overflow-hidden">
+      <Image
+        {...props}
+        src={displaySrc}
+        alt={alt}
+        fill
+        sizes={sizes}
+        className={className}
+        onError={handleError}
+        unoptimized={displaySrc.startsWith('/icons/')}
+      />
+    </span>
   );
 }
 
