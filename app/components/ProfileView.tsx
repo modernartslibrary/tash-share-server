@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Post, List, Profile } from '../types';
 import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
@@ -133,7 +134,11 @@ export default function ProfileView({ data }: ProfileViewProps) {
         </div>
 
         <div className="w-[64px] h-[64px] overflow-hidden rounded-full border border-gray-100 ml-4">
-          <img src={data.avatar_url || "/icons/default_profile.jpg"} className="w-full h-full object-cover" alt="profile avatar" />
+          <ListFallbackImage
+            src={data.avatar_url}
+            className="w-full h-full object-cover"
+            alt="profile avatar"
+          />
         </div>
       </div>
 
@@ -184,10 +189,12 @@ export default function ProfileView({ data }: ProfileViewProps) {
               className="p-1"
               onClick={() => handleViewTypeChange(viewType === 'grid' ? 'list' : 'grid')}
             >
-              <img
+              <Image
                 src={viewType === 'grid' ? "/icons/profile_post_list.png" : "/icons/profile_post_grid.png"}
                 className="w-[18px] h-[18px]"
                 alt="toggle view"
+                width={18}
+                height={18}
               />
             </button>
           </div>
@@ -213,10 +220,12 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
     onClick={onClick}
     className="flex-1 flex flex-col items-center justify-center relative h-full outline-none"
   >
-    <img
+    <Image
       src={icon}
       className={`w-[20px] h-[20px] object-contain transition-all opacity-100 ${active ? 'scale-110' : ''}`}
       alt="tab icon"
+      width={20}
+      height={20}
     />
     {active && <div className="absolute bottom-0 w-[26px] h-[1.5px] bg-black"></div>}
   </button>
@@ -273,13 +282,13 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                 {isArtist ? (
                   <ArtistFallbackImage
                     src={post.artist_profile_path}
-                    className="w-full h-full object-cover border border-gray-100"
+                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
                     alt={post.artist_name || "artist"}
                   />
                 ) : (
                   <WorkFallbackImage
                     src={post.works?.image_url}
-                    className="w-full h-full object-cover border border-gray-100"
+                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
                     alt={post.works?.work_title || "post thumbnail"}
                   />
                 )}
@@ -291,8 +300,8 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                 <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'} line-clamp-1`}>
                   {(() => {
                     if (isArtist) {
-                      const birthYear = post.artist_birth_date ? post.artist_birth_date.split('-')[0] : '';
-                      return `인물 · ${birthYear}-`;
+                      const birthYear = post.artist_birth_date?.split('-')[0];
+                      return birthYear ? `인물 · ${birthYear}-` : '인물';
                     }
                     const type = post.works?.work_type;
                     let label = "기타";
@@ -310,7 +319,7 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                 </p>
                 {!isArtist && post.rating && (
                   <div className="flex items-center text-black text-[13px] mt-0.5">
-                    <img src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" />
+                    <Image src="/icons/star_icon.png" className="w-[11px] h-[11px] mr-1" alt="rating star" width={11} height={11} />
                     <span>{post.rating.toFixed(1)}</span>
                   </div>
                 )}
@@ -318,19 +327,17 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
             </div>
 
             {post.content && (
-              <p className="text-[14px] text-black font-normal leading-snug mb-3 whitespace-pre-wrap">
-                {post.content}
-              </p>
+              <ExpandablePostContent content={post.content} />
             )}
 
             {!hideStats && (
               <div className="flex items-center text-[12px] text-black font-normal">
                 <div className="flex items-center mr-5">
-                  <img src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" />
+                  <Image src="/icons/like_button_no.png" className="w-[18px] h-[18px] mr-1.5 opacity-80" alt="like icon" width={18} height={18} />
                   <span className="text-[13px]">{post.likes_count || 0}</span>
                 </div>
                 <div className="flex items-center mr-5">
-                  <img src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" />
+                  <Image src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" width={20} height={20} />
                   <span className="text-[13px]">{post.comments_count || 0}</span>
                 </div>
                 <div className="ml-auto text-gray-400" suppressHydrationWarning>
@@ -344,6 +351,41 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
     })}
   </div>
 );
+
+const ExpandablePostContent = ({ content }: { content: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  const normalizedContent = content.trim();
+  const canToggle = normalizedContent.length > 140;
+
+  const toggleExpanded = (event: React.MouseEvent | React.KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setExpanded((value) => !value);
+  };
+
+  return (
+    <div className="mb-3">
+      <p className={`text-[14px] text-black font-normal leading-snug whitespace-pre-wrap ${expanded ? '' : 'line-clamp-7'}`}>
+        {normalizedContent}
+      </p>
+      {canToggle && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={toggleExpanded}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              toggleExpanded(event);
+            }
+          }}
+          className="mt-1 inline-block text-[14px] text-gray-400"
+        >
+          {expanded ? '접기' : '더보기'}
+        </span>
+      )}
+    </div>
+  );
+};
 
 const formatWorkCount = (workCounts?: Record<string, number>) => {
   if (!workCounts || Object.keys(workCounts).length === 0) return "작품 0개";

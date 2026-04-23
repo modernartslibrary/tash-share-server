@@ -399,7 +399,7 @@ function WorkPreviewSections({ data }: { data: Work }) {
 
   return (
     <div className="px-5 pb-14">
-      <div className="mt-2">
+      <div>
         <PreviewSectionTitle title="포스트" showMore />
         {posts.length > 0 ? (
           <div className="flex flex-col gap-5">
@@ -412,12 +412,12 @@ function WorkPreviewSections({ data }: { data: Work }) {
         )}
       </div>
 
-      <div className="mt-10">
+      <div className="mt-6">
         <PreviewSectionTitle title="이 작품을 아카이브한 사람" showMore />
         {likeUsers.length > 0 ? (
-          <div className="overflow-x-auto no-scrollbar pb-1">
+          <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
-              {likeUsers.slice(0, 7).map((user) => (
+              {likeUsers.map((user) => (
                 <PreviewUserCard key={user.id} user={user} />
               ))}
             </div>
@@ -427,12 +427,12 @@ function WorkPreviewSections({ data }: { data: Work }) {
         )}
       </div>
 
-      <div className="mt-10">
+      <div className="mt-6">
         <PreviewSectionTitle title="이 작품이 포함된 리스트" showMore />
         {lists.length > 0 ? (
-          <div className="overflow-x-auto no-scrollbar pb-1">
+          <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
-              {lists.slice(0, 7).map((list) => (
+              {lists.map((list) => (
                 <PreviewListCard key={list.id} list={list} />
               ))}
             </div>
@@ -447,14 +447,14 @@ function WorkPreviewSections({ data }: { data: Work }) {
 
 function PreviewSectionTitle({ title, showMore = false }: { title: string; showMore?: boolean }) {
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <h3 className="text-[18px] font-bold text-black">
+    <div className="mb-2.5 flex items-center gap-3">
+      <h3 className="text-[17px] sm:text-[18px] font-bold text-black">
         {title}
       </h3>
       {showMore && (
         <button
           type="button"
-          className="link-trigger text-[14px] text-gray-400 font-normal tracking-tight"
+          className="link-trigger text-[13px] text-gray-400 font-normal tracking-tight"
         >
           모두보기
         </button>
@@ -501,15 +501,15 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
 function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   const label = user.username || user.nickname || 'Unknown';
   const content = (
-    <div className="flex w-[76px] flex-col items-center text-center">
-      <div className="h-[64px] w-[64px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+    <div className="flex w-[60px] flex-col items-center text-center">
+      <div className="h-[52px] w-[52px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
         <ListFallbackImage
           src={user.avatar_url}
           className="h-full w-full object-cover"
           alt={label}
         />
       </div>
-      <span className="mt-2 text-[13px] font-medium text-black line-clamp-1 w-full tracking-tight">
+      <span className="mt-1.5 text-[12px] font-medium text-black line-clamp-1 w-full tracking-tight">
         {label}
       </span>
     </div>
@@ -528,7 +528,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
 
 function PreviewListCard({ list }: { list: SharePreviewList }) {
   const content = (
-    <div className="flex w-[112px] sm:w-[126px] flex-col">
+    <div className="flex w-[124px] sm:w-[140px] flex-col">
       <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
         <ListFallbackImage
           src={list.cover_url}
@@ -536,10 +536,10 @@ function PreviewListCard({ list }: { list: SharePreviewList }) {
           alt={list.title}
         />
       </div>
-      <span className="mt-2 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
+      <span className="mt-1.5 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
         {list.title}
       </span>
-      <span className="mt-1 text-[12px] text-gray-400 tracking-tight line-clamp-1">
+      <span className="mt-0.5 text-[12px] text-gray-400 tracking-tight line-clamp-1">
         {list.username || ''}
       </span>
     </div>

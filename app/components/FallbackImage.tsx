@@ -37,14 +37,14 @@ function BaseFallbackImage({
   };
 
   return (
-    <span className="relative block h-full w-full overflow-hidden">
+    <span className={`relative block overflow-hidden ${className || 'h-full w-full'}`}>
       <Image
         {...props}
         src={displaySrc}
         alt={alt}
         fill
         sizes={sizes}
-        className={className}
+        className="h-full w-full object-cover"
         onError={handleError}
         unoptimized={displaySrc.startsWith('/icons/')}
       />

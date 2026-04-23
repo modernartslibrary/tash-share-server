@@ -39,23 +39,23 @@ export default function ArtistView({ data }: ArtistViewProps) {
       </div>
 
       {data.biography && (
-        <div className="px-6 mb-8">
+        <div className="px-6">
           <p className="text-[15px] text-black leading-relaxed whitespace-pre-wrap tracking-tight font-normal">
             {data.biography}
           </p>
         </div>
       )}
 
-      <div className="px-6">
+      <div className="px-6 mt-6">
         <PreviewSectionTitle title="작품들" showMore />
         {displayWorks.length > 0 ? (
-          <div className="overflow-x-auto no-scrollbar pb-1">
+          <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
-              {displayWorks.slice(0, 7).map((work) => (
+              {displayWorks.map((work) => (
                 <Link
                   key={work.id}
                   href={`/work/${work.slug || work.id}`}
-                  className="link-trigger flex w-[112px] sm:w-[126px] flex-col"
+                  className="link-trigger flex w-[124px] sm:w-[140px] flex-col"
                 >
                   <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
                     <WorkFallbackImage
@@ -64,10 +64,10 @@ export default function ArtistView({ data }: ArtistViewProps) {
                       alt={work.work_title}
                     />
                   </div>
-                  <span className="mt-2 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
+                  <span className="mt-1.5 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
                     {work.work_title}
                   </span>
-                  <span className="mt-1 text-[12px] text-gray-400 tracking-tight">
+                  <span className="mt-0.5 text-[12px] text-gray-400 tracking-tight">
                     {work.work_year ?? ''}
                   </span>
                 </Link>
@@ -79,12 +79,12 @@ export default function ArtistView({ data }: ArtistViewProps) {
         )}
       </div>
 
-      <div className="px-6 mt-9">
+      <div className="px-6 mt-6">
         <PreviewSectionTitle title="이 아티스트를 아카이브에 담은 사람" showMore />
         {likeUsers.length > 0 ? (
-          <div className="overflow-x-auto no-scrollbar pb-1">
+          <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
-              {likeUsers.slice(0, 7).map((user) => (
+              {likeUsers.map((user) => (
                 <PreviewUserCard key={user.id} user={user} />
               ))}
             </div>
@@ -99,14 +99,14 @@ export default function ArtistView({ data }: ArtistViewProps) {
 
 function PreviewSectionTitle({ title, showMore = false }: { title: string; showMore?: boolean }) {
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <h3 className="text-[20px] font-bold text-black tracking-tight">
+    <div className="mb-2.5 flex items-center gap-3">
+      <h3 className="text-[17px] sm:text-[18px] font-bold text-black tracking-tight">
         {title}
       </h3>
       {showMore && (
         <button
           type="button"
-          className="link-trigger text-[14px] text-gray-400 font-normal tracking-tight"
+          className="link-trigger text-[13px] text-gray-400 font-normal tracking-tight"
         >
           모두보기
         </button>
@@ -118,15 +118,15 @@ function PreviewSectionTitle({ title, showMore = false }: { title: string; showM
 function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   const label = user.username || user.nickname || 'Unknown';
   const content = (
-    <div className="flex w-[76px] flex-col items-center text-center">
-      <div className="h-[64px] w-[64px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+    <div className="flex w-[60px] flex-col items-center text-center">
+      <div className="h-[52px] w-[52px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
         <ListFallbackImage
           src={user.avatar_url}
           className="h-full w-full object-cover"
           alt={label}
         />
       </div>
-      <span className="mt-2 text-[13px] font-medium text-black line-clamp-1 w-full tracking-tight">
+      <span className="mt-1.5 text-[12px] font-medium text-black line-clamp-1 w-full tracking-tight">
         {label}
       </span>
     </div>
