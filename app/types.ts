@@ -106,6 +106,7 @@ export interface Profile {
   nickname?: string;
   avatar_url?: string;
   bio?: string;
+  website?: string;
   followers_count?: number;
   following_count?: number;
   works_count?: number;
@@ -139,12 +140,14 @@ export interface Post {
   profiles?: Profile;
   image_url?: string;
   work_id?: string; // 아카이브 아이템(work_likes) 대응을 위한 필드 추가
-  item_type?: 'work' | 'artist';
+  item_type?: 'work' | 'artist' | 'list';
   artist_id?: string;
   artist_name?: string;
   artist_profile_path?: string;
   artist_birth_date?: string;
   artist_slug?: string;
+  list_id?: string;
+  list?: List;
   comments?: TASHComment[];
 }
 

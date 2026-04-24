@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         hostname: "mosaic.scdn.co",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.pstatic.net",
+        pathname: "/**",
+      },
     ],
   },
   allowedDevOrigins: ['172.30.1.33', 'localhost:3000'],

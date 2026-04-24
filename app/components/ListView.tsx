@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { List } from '../types';
 import { ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
+const SQUARE_COVER_STYLE = {
+  width: 'clamp(188px, 58vw, 330px)',
+};
+
 interface ListViewProps {
   data: List;
 }
@@ -31,12 +35,14 @@ export default function ListView({ data }: ListViewProps) {
   return (
     <div className="flex flex-col bg-white min-h-screen pb-20">
       {/* 1. 리스트 썸네일 (Large, Centered) */}
-      <div className="flex justify-center pt-8 pb-6 px-10">
-        <div className="w-full max-w-[320px] aspect-square overflow-hidden shadow-sm">
+      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
+        <div className="aspect-square overflow-hidden shadow-sm" style={SQUARE_COVER_STYLE}>
           <ListFallbackImage
             src={data.cover_url}
             className="w-full h-full object-cover"
             alt={data.title}
+            sizes="(max-width: 672px) 58vw, 330px"
+            loading="eager"
           />
         </div>
       </div>
@@ -50,7 +56,7 @@ export default function ListView({ data }: ListViewProps) {
 
       {/* 3. 리스트 요약 정보 (Centered) */}
       <div className="px-10 text-center mb-0.5">
-        <p className="text-[14px] text-gray-400 font-normal">
+        <p className="text-[14px] text-[#6F6F6F] font-normal">
           {workSummary}
         </p>
       </div>
@@ -58,7 +64,7 @@ export default function ListView({ data }: ListViewProps) {
       {/* 4. 제작자 프로필 아이디 (Centered) */}
       <div className="px-10 text-center mb-6">
         <Link href={`/profile/${data.profiles?.username || ''}`}>
-          <p className="inline-block text-[14px] text-gray-400 font-normal hover:text-black transition-colors cursor-pointer">
+          <p className="inline-block text-[14px] text-[#6F6F6F] font-normal cursor-pointer">
             @{data.profiles?.username || 'unknown'}
           </p>
         </Link>
@@ -76,23 +82,24 @@ export default function ListView({ data }: ListViewProps) {
         {(data.items || []).map((work) => (
           <Link key={work.id} href={`/work/${work.slug || work.id}`}>
             <div
-              className="flex items-center py-2.5 px-6 active:bg-gray-50 transition-colors cursor-pointer group"
+              className="flex items-center py-3 px-6 active:bg-gray-50 transition-colors cursor-pointer group"
             >
               {/* 작품 썸네일 */}
-              <div className="w-[60px] h-[60px] overflow-hidden mr-4 flex-shrink-0">
+              <div className="w-[72px] h-[72px] overflow-hidden mr-4 flex-shrink-0">
                 <WorkFallbackImage
                   src={work.image_url}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt={work.work_title}
+                  sizes="72px"
                 />
               </div>
 
               {/* 작품 정보 */}
               <div className="flex flex-col flex-1 min-w-0">
-                <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1 mb-0.5 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-[16px] font-normal text-black leading-tight line-clamp-1 mb-1 group-hover:text-blue-600 transition-colors">
                   {work.work_title}
                 </h3>
-                <p className="text-[13px] text-gray-400 font-normal truncate">
+                <p className="text-[14px] text-[#6F6F6F] font-normal truncate">
                   {getWorkTypeLabel(work.work_type)} · {work.artist_name}, {work.work_year}
                 </p>
               </div>

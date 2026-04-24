@@ -30,8 +30,13 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
   React.useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      const allowedNavigation = target.closest('[data-allow-navigation="true"]');
       const trigger = target.closest('.link-trigger');
       const detailLink = target.closest('a[href^="/work/"], a[href^="/artist/"]');
+
+      if (allowedNavigation) {
+        return;
+      }
 
       if (trigger || detailLink) {
         showPopup(e);
@@ -50,16 +55,22 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
     <div className="min-h-screen bg-white text-black font-sans pb-12">
       {/* Header with CTA */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-white/90 backdrop-blur-md flex items-center justify-between px-5 z-50 border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="link-trigger cursor-pointer">
-            <Image src="/icons/app_logo.png" className="h-5 w-auto object-contain" alt="tash" width={64} height={20} />
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="link-trigger cursor-pointer shrink-0">
+            <Image
+              src="/icons/app_logo.png"
+              className="object-contain"
+              alt="tash"
+              width={22}
+              height={22}
+            />
           </div>
-          <span className="text-[13px] font-medium text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
+          <span className="min-w-0 text-[14px] font-medium leading-tight text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
         </div>
 
         <button
           onClick={(e) => showPopup(e)}
-          className="px-4 h-8 rounded-full bg-black text-white flex items-center justify-center active:scale-90 transition-transform text-[13px] font-semibold"
+          className="h-8 shrink-0 whitespace-nowrap rounded-full bg-black px-4 text-[13px] font-semibold text-white transition-transform active:scale-90"
         >
           열기
         </button>

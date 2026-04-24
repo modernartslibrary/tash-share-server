@@ -6,6 +6,19 @@ import Link from 'next/link';
 import { Credit, SharePreviewList, SharePreviewPost, SharePreviewUser, Work } from '../types';
 import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
+const SQUARE_COVER_STYLE = {
+  width: 'clamp(188px, 58vw, 330px)',
+};
+
+const POSTER_COVER_STYLE = {
+  width: 'clamp(162px, 46vw, 248px)',
+};
+
+const META_TO_BIO_SPACING = 'mt-4 sm:mt-5';
+const SECTION_STACK_CLASS = 'mt-5 sm:mt-6 flex flex-col gap-5 sm:gap-6';
+const PREVIEW_SECTION_TITLE_CLASS = 'mb-2 flex items-center gap-3';
+const DENSE_SECTION_TITLE_CLASS = 'mb-1.5';
+
 interface WorkViewProps {
   data: Work;
 }
@@ -51,20 +64,23 @@ function MovieLayout({
   onToggle: () => void;
 }) {
   const hasMore = (data.credits?.length || 0) > curatedCredits.length || isExpanded;
+  const hasBiography = Boolean(data.biography);
 
   return (
     <div className="flex flex-col bg-white">
-      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-16">
-        <div className="w-[190px] sm:w-[240px] aspect-[2/3] relative overflow-hidden border border-gray-100">
+      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
+        <div className="aspect-[2/3] relative overflow-hidden border border-gray-100" style={POSTER_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
+            sizes="(max-width: 672px) 46vw, 248px"
+            loading="eager"
           />
         </div>
       </div>
 
-      <div className="px-5 mb-4">
+      <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tighter">
             {data.work_title}
@@ -79,10 +95,10 @@ function MovieLayout({
         </div>
 
         <div className="flex flex-col gap-0 mt-2">
-          <p className="text-[12px] text-gray-400 font-normal tracking-tight">
+          <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight">
             {getCategoryLabel(data.work_type)} · {data.artist_name}{data.work_year ? `, ${data.work_year}` : ''}
           </p>
-          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
+          <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight leading-none">
             {data.production_countries && data.production_countries.length > 0
               ? data.production_countries.map(c => getCountryName(c)).join(', ')
               : ''}
@@ -95,279 +111,303 @@ function MovieLayout({
       </div>
 
       {data.biography && (
-        <div className="px-5 mb-8">
+        <div className={`px-5 ${META_TO_BIO_SPACING}`}>
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
           </p>
         </div>
       )}
 
-      {curatedCredits.length > 0 && (
-        <div className="px-5 mb-12">
-          <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-[18px] font-bold text-black">크레딧</h3>
-            {hasMore && (
-              <button
-                onClick={onToggle}
-                className="text-[14px] text-gray-400 font-normal hover:text-black transition-colors"
-              >
-                {isExpanded ? '접기' : '모두 보기'}
-              </button>
-            )}
+      <div className={hasBiography ? SECTION_STACK_CLASS : `${META_TO_BIO_SPACING} flex flex-col gap-5 sm:gap-6`}>
+        {curatedCredits.length > 0 && (
+          <div className="px-5">
+            <div className={`flex items-center gap-3 ${DENSE_SECTION_TITLE_CLASS}`}>
+              <h3 className="text-[18px] font-bold text-black">크레딧</h3>
+              {hasMore && (
+                <button
+                  onClick={onToggle}
+                  className="text-[14px] text-[#6F6F6F] font-normal"
+                >
+                  {isExpanded ? '접기' : '모두 보기'}
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
+              {curatedCredits.map((credit, idx) => (
+                <Link
+                  key={credit.id || `credit-${idx}`}
+                  href={`/artist/${credit.slug || credit.id}`}
+                  className="link-trigger flex items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                    <ArtistFallbackImage
+                      src={credit.profile_path}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      alt={credit.name}
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
+                    <span className="text-[12px] text-[#6F6F6F] truncate">{credit.role}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {curatedCredits.map((credit, idx) => (
-              <Link
-                key={credit.id || `credit-${idx}`}
-                href={`/artist/${credit.slug || credit.id}`}
-                className="link-trigger flex items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <ArtistFallbackImage
-                    src={credit.profile_path}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    alt={credit.name}
-                  />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
-                  <span className="text-[12px] text-gray-400 truncate">{credit.role}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
 
-      <WorkPreviewSections data={data} />
+        <WorkPreviewSections data={data} />
+      </div>
     </div>
   );
 }
 
 function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
+  const hasBiography = Boolean(data.biography);
+
   return (
     <div className="flex flex-col bg-white">
-      <div className="flex justify-center pt-8 pb-6 px-6">
+      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
         <div
           className="aspect-square relative overflow-hidden border border-gray-100 mx-auto"
-          style={{ width: '260px', height: '260px' }}
+          style={SQUARE_COVER_STYLE}
         >
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
+            sizes="(max-width: 672px) 58vw, 330px"
+            loading="eager"
           />
         </div>
       </div>
 
-      <div className="px-5 mb-4">
+      <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
             {data.work_title}
           </h1>
         </div>
         <div className="flex flex-col">
-          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none mb-1">
+          <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight leading-none mb-1">
             앨범 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
-          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
+          <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight leading-none">
             {data.genres?.join(', ')}
           </p>
         </div>
       </div>
 
       {data.biography && (
-        <div className="px-5 mb-8">
-          <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
+        <div className={`px-5 ${META_TO_BIO_SPACING}`}>
+          <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
           </p>
         </div>
       )}
 
-      {data.tracks_cache && data.tracks_cache.length > 0 && (
-        <div className="px-5 mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-[14px] font-normal text-black">트랙 리스트</h3>
-          </div>
-          <div className="flex flex-col">
-            {data.tracks_cache.map((track) => (
-              <div
-                key={track.id}
-                className="link-trigger flex items-start py-0.5 gap-2 cursor-pointer"
-              >
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
-                  <div className="flex flex-col flex-1 pl-1 min-w-0">
-                    <span className="text-[14px] font-normal text-black line-clamp-1 tracking-tighter">{track.name}</span>
+      <div className={hasBiography ? SECTION_STACK_CLASS : `${META_TO_BIO_SPACING} flex flex-col gap-5 sm:gap-6`}>
+        {data.tracks_cache && data.tracks_cache.length > 0 && (
+          <div className="px-5">
+            <div className={`flex items-center gap-2 ${DENSE_SECTION_TITLE_CLASS}`}>
+              <h3 className="text-[14px] font-normal text-black">트랙 리스트</h3>
+            </div>
+            <div className="flex flex-col">
+              {data.tracks_cache.map((track) => (
+                <div
+                  key={track.id}
+                  className="link-trigger flex items-start py-0.5 gap-2 cursor-pointer"
+                >
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
+                    <div className="flex flex-col flex-1 pl-1 min-w-0">
+                      <span className="text-[14px] font-normal text-black line-clamp-1 tracking-tighter">{track.name}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
+                    <Image
+                      src="/icons/backIcon_right.png"
+                      alt="arrow"
+                      width={10}
+                      height={10}
+                      className="object-contain"
+                    />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 pt-[2px]">
-                  <Image
-                    src="/icons/backIcon_right.png"
-                    alt="arrow"
-                    width={10}
-                    height={10}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {curatedCredits.length > 0 && (
-        <div className="px-5 mb-12">
-          <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {curatedCredits.map((credit, idx) => (
-              <Link
-                key={credit.id || `credit-${idx}`}
-                href={`/artist/${credit.slug || credit.id}`}
-                className="link-trigger flex items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <ArtistFallbackImage
-                    src={credit.profile_path}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    alt={credit.name}
-                  />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
-                  <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
-                </div>
-              </Link>
-            ))}
+        {curatedCredits.length > 0 && (
+          <div className="px-5">
+            <h3 className={`text-[18px] font-bold text-black ${DENSE_SECTION_TITLE_CLASS}`}>크레딧</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
+              {curatedCredits.map((credit, idx) => (
+                <Link
+                  key={credit.id || `credit-${idx}`}
+                  href={`/artist/${credit.slug || credit.id}`}
+                  className="link-trigger flex items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                    <ArtistFallbackImage
+                      src={credit.profile_path}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      alt={credit.name}
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
+                    <span className="text-[12px] text-[#6F6F6F] truncate">{getRoleLabel(credit.role)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <WorkPreviewSections data={data} />
+        <WorkPreviewSections data={data} />
+      </div>
     </div>
   );
 }
 
 function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
+  const hasBiography = Boolean(data.biography);
+
   return (
     <div className="flex flex-col bg-white">
-      <div className="flex justify-center pt-8 pb-6 px-6">
+      <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
         <div
           className="aspect-square relative overflow-hidden border border-gray-100"
-          style={{ width: '260px', height: '260px' }}
+          style={SQUARE_COVER_STYLE}
         >
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
+            sizes="(max-width: 672px) 58vw, 330px"
+            loading="eager"
           />
         </div>
       </div>
 
-      <div className="px-5 mb-4">
+      <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
             {data.work_title}
           </h1>
         </div>
         <div className="flex flex-col">
-          <p className="text-[12px] text-gray-400 font-normal tracking-tight leading-none">
+          <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight leading-none">
             곡 · {data.display_artist_name || data.artist_name}{data.work_year ? ` · ${data.work_year}` : ''}
           </p>
         </div>
       </div>
 
       {data.biography && (
-        <div className="px-5 mb-8">
-          <p className="text-[14px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
+        <div className={`px-5 ${META_TO_BIO_SPACING}`}>
+          <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap tracking-[-0.05em]">
             {data.biography}
           </p>
         </div>
       )}
 
-      {data.parent_album_cache && (
-        <div className="px-5 mb-8">
-          <Link
-            href={`/work/${data.parent_album_cache.slug || data.parent_album_cache.id}`}
-            className="link-trigger flex items-center transition-colors cursor-pointer"
-          >
-            <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
-              <WorkFallbackImage
-                src={data.parent_album_cache.poster_path}
-                className="w-full h-full object-cover"
-                alt="album cover"
-              />
-            </div>
-            <div className="flex flex-col pl-4 min-w-0">
-              <span className="text-[15px] font-normal text-black truncate tracking-tight">{data.parent_album_cache.title}</span>
-              <span className="text-[12px] text-gray-500 truncate tracking-tight">{data.parent_album_cache.artist_names_display}</span>
-            </div>
-          </Link>
-        </div>
-      )}
-
-      {curatedCredits.length > 0 && (
-        <div className="px-5 mb-12">
-          <h3 className="text-[18px] font-bold text-black mb-4">크레딧</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
-            {curatedCredits.map((credit, idx) => (
-              <div
-                key={credit.id || `credit-${idx}`}
-                className="link-trigger flex items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                  <ArtistFallbackImage
-                    src={credit.profile_path}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    alt={credit.name}
-                  />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
-                  <span className="text-[12px] text-gray-400 truncate">{getRoleLabel(credit.role)}</span>
-                </div>
+      <div className={hasBiography ? SECTION_STACK_CLASS : `${META_TO_BIO_SPACING} flex flex-col gap-5 sm:gap-6`}>
+        {data.parent_album_cache && (
+          <div className="px-5">
+            <Link
+              href={`/work/${data.parent_album_cache.slug || data.parent_album_cache.id}`}
+              className="link-trigger flex items-center transition-colors cursor-pointer"
+            >
+              <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
+                <WorkFallbackImage
+                  src={data.parent_album_cache.poster_path}
+                  className="w-full h-full object-cover"
+                  alt="album cover"
+                  sizes="64px"
+                />
               </div>
-            ))}
+              <div className="flex flex-col pl-4 min-w-0">
+                <span className="text-[15px] font-normal text-black truncate tracking-tight">{data.parent_album_cache.title}</span>
+                <span className="text-[12px] text-[#6F6F6F] truncate tracking-tight">{data.parent_album_cache.artist_names_display}</span>
+              </div>
+            </Link>
           </div>
-        </div>
-      )}
+        )}
 
-      <WorkPreviewSections data={data} />
+        {curatedCredits.length > 0 && (
+          <div className="px-5">
+            <h3 className={`text-[18px] font-bold text-black ${DENSE_SECTION_TITLE_CLASS}`}>크레딧</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4" style={{ rowGap: '13px' }}>
+              {curatedCredits.map((credit, idx) => (
+                <div
+                  key={credit.id || `credit-${idx}`}
+                  className="link-trigger flex items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                    <ArtistFallbackImage
+                      src={credit.profile_path}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      alt={credit.name}
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[14px] text-black truncate font-normal group-hover:underline">{credit.name}</span>
+                    <span className="text-[12px] text-[#6F6F6F] truncate">{getRoleLabel(credit.role)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <WorkPreviewSections data={data} />
+      </div>
     </div>
   );
 }
 
 function BookLayout({ data }: { data: Work }) {
+  const hasBiography = Boolean(data.biography);
+
   return (
     <div className="flex flex-col bg-white">
-      <div className="flex justify-center pt-8 pb-6 px-5">
-        <div className="w-[170px] aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50">
+      <div className="flex justify-center pt-8 pb-6 px-5 sm:pt-10">
+        <div className="aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50" style={POSTER_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
+            sizes="(max-width: 672px) 46vw, 248px"
+            loading="eager"
           />
         </div>
       </div>
 
-      <div className="px-5 mb-4">
+      <div className="px-5">
         <h1 className="text-[26px] font-black text-black leading-[1.2] mb-2 tracking-tighter">
           {data.work_title}
         </h1>
-        <p className="text-[12px] text-gray-400 font-normal tracking-tight">
+        <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight">
           {getCategoryLabel(data.work_type)} · {data.artist_name}, {data.work_year}
         </p>
       </div>
 
       {data.biography && (
-        <div className="px-5 mb-8">
+        <div className={`px-5 ${META_TO_BIO_SPACING}`}>
           <p className="text-[15px] text-[#222] leading-normal whitespace-pre-wrap font-normal tracking-[-0.05em]">
             {data.biography}
           </p>
         </div>
       )}
 
-      <WorkPreviewSections data={data} />
+      <div className={hasBiography ? SECTION_STACK_CLASS : `${META_TO_BIO_SPACING} flex flex-col gap-5 sm:gap-6`}>
+        <WorkPreviewSections data={data} />
+      </div>
     </div>
   );
 }
@@ -375,16 +415,18 @@ function BookLayout({ data }: { data: Work }) {
 function DefaultLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
-      <div className="flex flex-col items-center py-10 px-5">
-        <div className="w-48 aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100">
+      <div className="flex flex-col items-center pt-8 pb-6 px-5 sm:pt-10">
+        <div className="aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100" style={SQUARE_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
+            sizes="(max-width: 672px) 58vw, 330px"
+            loading="eager"
           />
         </div>
         <h1 className="text-2xl font-bold mb-1 text-center">{data.work_title}</h1>
-        <p className="text-gray-500 mb-8">{data.artist_name}</p>
+        <p className="text-[#6F6F6F] mb-8">{data.artist_name}</p>
       </div>
 
       <WorkPreviewSections data={data} />
@@ -398,7 +440,7 @@ function WorkPreviewSections({ data }: { data: Work }) {
   const lists = data.lists_preview || [];
 
   return (
-    <div className="px-5 pb-14">
+    <div className="px-5 pb-3 sm:pb-4">
       <div>
         <PreviewSectionTitle title="포스트" showMore />
         {posts.length > 0 ? (
@@ -412,7 +454,7 @@ function WorkPreviewSections({ data }: { data: Work }) {
         )}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5 sm:mt-6">
         <PreviewSectionTitle title="이 작품을 아카이브한 사람" showMore />
         {likeUsers.length > 0 ? (
           <div className="overflow-x-auto no-scrollbar">
@@ -427,7 +469,7 @@ function WorkPreviewSections({ data }: { data: Work }) {
         )}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5 sm:mt-6">
         <PreviewSectionTitle title="이 작품이 포함된 리스트" showMore />
         {lists.length > 0 ? (
           <div className="overflow-x-auto no-scrollbar">
@@ -447,14 +489,14 @@ function WorkPreviewSections({ data }: { data: Work }) {
 
 function PreviewSectionTitle({ title, showMore = false }: { title: string; showMore?: boolean }) {
   return (
-    <div className="mb-2.5 flex items-center gap-3">
+    <div className={PREVIEW_SECTION_TITLE_CLASS}>
       <h3 className="text-[17px] sm:text-[18px] font-bold text-black">
         {title}
       </h3>
       {showMore && (
         <button
           type="button"
-          className="link-trigger text-[13px] text-gray-400 font-normal tracking-tight"
+          className="link-trigger text-[13px] text-[#6F6F6F] font-normal tracking-tight"
         >
           모두보기
         </button>
@@ -473,12 +515,13 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
           src={post.profiles?.avatar_url}
           className="h-full w-full object-cover"
           alt={avatarAlt}
+          sizes="40px"
         />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-0">
           <span className="text-[15px] font-semibold text-black line-clamp-1">{username}</span>
-          <span className="text-[12px] text-gray-400 shrink-0">{formatTimeAgo(post.created_at)}</span>
+          <span className="text-[12px] text-[#6F6F6F] shrink-0">{formatTimeAgo(post.created_at)}</span>
         </div>
         <p className="text-[15px] leading-[1.45] text-[#1A1A1A] whitespace-pre-wrap line-clamp-2 tracking-tight">
           {post.content?.trim() ? post.content : '내용이 없습니다'}
@@ -492,7 +535,7 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
   }
 
   return (
-    <Link href={`/post/${post.slug || post.id}`} className="link-trigger">
+    <Link href={`/post/${post.slug || post.id}`} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );
@@ -507,6 +550,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
           src={user.avatar_url}
           className="h-full w-full object-cover"
           alt={label}
+          sizes="52px"
         />
       </div>
       <span className="mt-1.5 text-[12px] font-medium text-black line-clamp-1 w-full tracking-tight">
@@ -520,7 +564,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   }
 
   return (
-    <Link href={`/profile/${user.username}`} className="link-trigger">
+    <Link href={`/profile/${user.username}`} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );
@@ -534,19 +578,20 @@ function PreviewListCard({ list }: { list: SharePreviewList }) {
           src={list.cover_url}
           className="h-full w-full object-cover"
           alt={list.title}
+          sizes="140px"
         />
       </div>
       <span className="mt-1.5 text-[14px] leading-tight text-black line-clamp-2 tracking-tight">
         {list.title}
       </span>
-      <span className="mt-0.5 text-[12px] text-gray-400 tracking-tight line-clamp-1">
+      <span className="mt-0.5 text-[12px] text-[#6F6F6F] tracking-tight line-clamp-1">
         {list.username || ''}
       </span>
     </div>
   );
 
   return (
-    <Link href={`/list/${list.slug || list.id}`} className="link-trigger">
+    <Link href={`/list/${list.slug || list.id}`} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );
@@ -554,7 +599,7 @@ function PreviewListCard({ list }: { list: SharePreviewList }) {
 
 function EmptyPreviewText({ text }: { text: string }) {
   return (
-    <p className="text-[15px] text-gray-400 leading-relaxed tracking-tight">
+    <p className="text-[15px] text-[#6F6F6F] leading-relaxed tracking-tight">
       {text}
     </p>
   );
@@ -714,20 +759,52 @@ function getCountryName(country: string) {
   if (!country) return '';
   const mapping: Record<string, string> = {
     'US': '미국',
-    'KR': '한국',
-    'JP': '일본',
+    'KR': '대한민국',
     'GB': '영국',
+    'JP': '일본',
+    'CN': '중국',
     'FR': '프랑스',
     'DE': '독일',
-    'CN': '중국',
-    'ES': '스페인',
     'IT': '이탈리아',
+    'ES': '스페인',
     'CA': '캐나다',
     'AU': '호주',
     'IN': '인도',
+    'BR': '브라질',
+    'MX': '멕시코',
     'RU': '러시아',
-    'HK': '홍콩',
+    'TH': '태국',
+    'VN': '베트남',
+    'PH': '필리핀',
+    'ID': '인도네시아',
+    'MY': '말레이시아',
+    'SG': '싱가포르',
     'TW': '대만',
+    'HK': '홍콩',
+    'NL': '네덜란드',
+    'BE': '벨기에',
+    'CH': '스위스',
+    'AT': '오스트리아',
+    'SE': '스웨덴',
+    'NO': '노르웨이',
+    'DK': '덴마크',
+    'FI': '핀란드',
+    'PL': '폴란드',
+    'CZ': '체코',
+    'HU': '헝가리',
+    'GR': '그리스',
+    'TR': '터키',
+    'IL': '이스라엘',
+    'EG': '이집트',
+    'ZA': '남아프리카공화국',
+    'NG': '나이지리아',
+    'AR': '아르헨티나',
+    'CL': '칠레',
+    'CO': '콜롬비아',
+    'PE': '페루',
+    'PT': '포르투갈',
+    'IE': '아일랜드',
+    'NZ': '뉴질랜드',
   };
   return mapping[country.toUpperCase()] || country;
 }

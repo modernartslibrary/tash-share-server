@@ -91,11 +91,27 @@ export default function ProfileView({ data }: ProfileViewProps) {
     if (activeFilter === '인물') {
       return data.initial_archives.filter(a => a.item_type === 'artist');
     }
+    if (activeFilter === '리스트') {
+      return data.initial_archives.filter(a => a.item_type === 'list');
+    }
     return data.initial_archives.filter((archive) => {
-      if (archive.item_type === 'artist') return !activeFilter; // 전체(필터 없음)일 때만 포함
+      if (archive.item_type === 'artist' || archive.item_type === 'list') {
+        return !activeFilter; // 전체(필터 없음)일 때만 포함
+      }
       return !activeFilter || filterMap[activeFilter]?.includes(archive.works?.work_type || '');
     });
   }, [data.initial_archives, activeFilter, filterMap]);
+
+  const getEmptyMessage = () => {
+    if (activeTab === 'posts') {
+      if (!activeFilter) return '아직 포스트가 없습니다';
+      if (activeFilter === 'TV') return 'TV/시리즈 카테고리에 해당하는 포스트가 없습니다';
+      return `${activeFilter} 카테고리에 해당하는 포스트가 없습니다`;
+    }
+
+    if (!activeFilter) return '아직 아카이브한 작품이나 아티스트가 없습니다';
+    return `${activeFilter} 카테고리에 아카이브한 항목이 없습니다`;
+  };
 
   const renderContent = () => {
     if (activeTab === 'lists') {
@@ -105,7 +121,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
     const items = activeTab === 'posts' ? filteredPosts : filteredArchives;
 
     if (items.length === 0) {
-      return <div className="py-24 text-center text-black font-normal text-[15px]">해당 기록이 아직 없습니다.</div>;
+      return <ProfileEmptyState message={getEmptyMessage()} />;
     }
 
     if (viewType === 'grid') {
@@ -119,25 +135,35 @@ export default function ProfileView({ data }: ProfileViewProps) {
     <div className="flex flex-col bg-white min-h-screen pb-32">
       {/* Header Section */}
       <div className="flex justify-between items-start pt-6 pb-2 px-[16px] mb-1">
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 min-w-0">
           <h1 className="text-[20px] font-bold tracking-tight leading-tight text-black mb-[1px]">
             {data.nickname || data.username}
           </h1>
           <p className="text-[13px] text-black font-normal mb-[2px]">
             {data.username}
           </p>
-          <div className="flex items-center text-[11px] text-gray-400 font-normal">
+          {data.bio?.trim() && (
+            <div className="mt-1 max-w-[calc(100vw-124px)]">
+              <ExpandableProfileBio content={data.bio} />
+            </div>
+          )}
+          <div className="flex items-center text-[11px] text-[#6F6F6F] font-normal">
             <span>팔로워 {data.followers_count || 0}</span>
             <span className="mx-1">·</span>
             <span>작품 {data.works_count || 0}</span>
           </div>
+          {data.website?.trim() && (
+            <ProfileWebsiteLink website={data.website} />
+          )}
         </div>
 
-        <div className="w-[64px] h-[64px] overflow-hidden rounded-full border border-gray-100 ml-4">
+        <div className="w-[76px] h-[76px] overflow-hidden rounded-full border border-gray-100 ml-4">
           <ListFallbackImage
             src={data.avatar_url}
             className="w-full h-full object-cover"
             alt="profile avatar"
+            sizes="76px"
+            loading="eager"
           />
         </div>
       </div>
@@ -163,28 +189,28 @@ export default function ProfileView({ data }: ProfileViewProps) {
 
       {/* Sub Filters Row */}
       {activeTab !== 'lists' && (
-        <div className="flex items-center px-[16px] py-2 mb-1 overflow-x-auto no-scrollbar gap-1.5">
-          <div className="flex gap-1.5">
-            {(activeTab === 'archives'
-              ? ['음악', '영화', 'TV', '책', '인물']
-              : ['음악', '영화', 'TV', '책']
-            ).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => handleFilterChange(filter)}
-                className={`h-[30px] px-4 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
-                  ? 'bg-black border-black text-white'
-                  : 'bg-white border-black text-black'
-                  }`}
-              >
-                {filter}
-              </button>
-            ))}
+        <div className="flex items-center gap-2 px-[16px] py-2 mb-1">
+          <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+            <div className="flex gap-1.5">
+              {(activeTab === 'archives'
+                ? ['음악', '영화', 'TV', '책', '인물', '리스트']
+                : ['음악', '영화', 'TV', '책']
+              ).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => handleFilterChange(filter)}
+                  className={`h-[30px] shrink-0 whitespace-nowrap px-4 rounded-full text-[12px] font-normal border transition-all flex items-center justify-center ${activeFilter === filter
+                    ? 'bg-black border-black text-white'
+                    : 'bg-white border-black text-black'
+                    }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex-1"></div>
-
-          <div className="flex items-center pl-2">
+          <div className="flex shrink-0 items-center">
             <button
               className="p-1"
               onClick={() => handleViewTypeChange(viewType === 'grid' ? 'list' : 'grid')}
@@ -231,30 +257,60 @@ const TabIcon = ({ icon, active, onClick }: TabIconProps) => (
   </button>
 );
 
+const getPostGridKey = (post: Post, index: number) => {
+  if (post.item_type === 'artist') {
+    return `artist-${post.artist_id || post.artist_slug || index}-${post.created_at}`;
+  }
+
+  if (post.item_type === 'list') {
+    return `list-${post.list_id || post.list?.id || post.list?.slug || index}-${post.created_at}`;
+  }
+
+  const workKey = post.work_id || post.works?.id || post.works?.slug;
+  if (workKey) {
+    return `work-${workKey}-${post.created_at}`;
+  }
+
+  return `post-${post.id || post.slug || index}-${post.created_at}`;
+};
+
 const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) => (
   <div className="grid grid-cols-3 gap-0">
-    {(posts || []).map((post) => {
+    {(posts || []).map((post, index) => {
       const isArtist = post.item_type === 'artist';
+      const isList = post.item_type === 'list';
       const href = isArchive
-        ? (isArtist 
-            ? `/artist/${post.artist_slug || post.artist_id}` 
-            : `/work/${post.works?.slug || post.work_id}`)
+        ? (isArtist
+            ? `/artist/${post.artist_slug || post.artist_id}`
+            : isList
+              ? `/list/${post.list?.slug || post.list_id || post.list?.id}`
+              : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
+      const key = getPostGridKey(post, index);
 
       return (
-        <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
+        <Link key={key} href={href}>
           <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
             {isArtist ? (
               <ArtistFallbackImage
                 src={post.artist_profile_path}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 alt={post.artist_name || "artist"}
+                sizes="(max-width: 672px) 33vw, 224px"
+              />
+            ) : isList ? (
+              <ListFallbackImage
+                src={post.list?.cover_url}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt={post.list?.title || "list"}
+                sizes="(max-width: 672px) 33vw, 224px"
               />
             ) : (
               <WorkFallbackImage
                 src={post.works?.image_url}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 alt={post.works?.work_title || "post thumbnail"}
+                sizes="(max-width: 672px) 33vw, 224px"
               />
             )}
           </div>
@@ -268,40 +324,64 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
   <div className="flex flex-col bg-white">
     {(posts || []).map((post) => {
       const isArtist = post.item_type === 'artist';
+      const isList = post.item_type === 'list';
       const href = isArchive
-        ? (isArtist 
-            ? `/artist/${post.artist_slug || post.artist_id}` 
-            : `/work/${post.works?.slug || post.work_id}`)
+        ? (isArtist
+            ? `/artist/${post.artist_slug || post.artist_id}`
+            : isList
+              ? `/list/${post.list?.slug || post.list_id || post.list?.id}`
+              : `/work/${post.works?.slug || post.work_id}`)
         : `/post/${post.slug || post.id}`;
+      const key = isArtist
+        ? `${post.artist_id}-${post.created_at}`
+        : isList
+          ? `${post.list_id || post.list?.id}-${post.created_at}`
+          : getPostGridKey(post, 0);
 
       return (
-        <Link key={isArtist ? `${post.artist_id}-${post.created_at}` : post.id} href={href}>
-          <div className={`${hideStats ? 'py-0' : 'py-2'} px-[16px] cursor-pointer active:bg-gray-50 transition-colors`}>
+        <Link
+          key={key}
+          href={href}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="py-2 px-[16px] cursor-pointer">
             <div className="flex items-center mb-0.5 relative">
-              <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
+              <div className="w-[76px] h-[76px] overflow-hidden bg-gray-50 mr-3 flex-shrink-0">
                 {isArtist ? (
                   <ArtistFallbackImage
                     src={post.artist_profile_path}
                     className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
                     alt={post.artist_name || "artist"}
+                    sizes="76px"
+                  />
+                ) : isList ? (
+                  <ListFallbackImage
+                    src={post.list?.cover_url}
+                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
+                    alt={post.list?.title || "list"}
+                    sizes="76px"
                   />
                 ) : (
                   <WorkFallbackImage
                     src={post.works?.image_url}
                     className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
                     alt={post.works?.work_title || "post thumbnail"}
+                    sizes="76px"
                   />
                 )}
               </div>
               <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-                <h3 className="text-[15px] font-normal text-black leading-tight line-clamp-1">
-                  {isArtist ? post.artist_name : (post.works?.work_title || "제목 없음")}
+                <h3 className={`${hideStats ? 'text-[16px]' : 'text-[15px]'} font-normal text-black leading-tight line-clamp-1`}>
+                  {isArtist ? post.artist_name : isList ? post.list?.title : (post.works?.work_title || "제목 없음")}
                 </h3>
-                <p className={`font-normal ${hideStats ? 'text-[11px] text-gray-400' : 'text-[14px] text-gray-500'} line-clamp-1`}>
+                <p className={`font-normal ${hideStats ? 'text-[13px]' : 'text-[14px]'} text-[#6F6F6F] line-clamp-1`}>
                   {(() => {
                     if (isArtist) {
                       const birthYear = post.artist_birth_date?.split('-')[0];
                       return birthYear ? `인물 · ${birthYear}-` : '인물';
+                    }
+                    if (isList) {
+                      return formatWorkCount(post.list?.work_counts);
                     }
                     const type = post.works?.work_type;
                     let label = "기타";
@@ -340,7 +420,7 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                   <Image src="/icons/post_comment.png" className="w-[20px] h-[20px] mr-1.5 opacity-80" alt="comment icon" width={20} height={20} />
                   <span className="text-[13px]">{post.comments_count || 0}</span>
                 </div>
-                <div className="ml-auto text-gray-400" suppressHydrationWarning>
+                <div className="ml-auto text-[#6F6F6F]" suppressHydrationWarning>
                   {new Date(post.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
                 </div>
               </div>
@@ -351,6 +431,62 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
     })}
   </div>
 );
+
+const ExpandableProfileBio = ({ content }: { content: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  const trimmedContent = content.trim();
+  const shouldShowToggle = trimmedContent.length > 64 || trimmedContent.split(/\r?\n/).length > 3;
+
+  if (!trimmedContent) return null;
+
+  return (
+    <div className="mb-1.5">
+      <p className={`text-[13px] text-black font-normal leading-snug whitespace-pre-wrap ${expanded ? '' : 'line-clamp-3'}`}>
+        {trimmedContent}
+      </p>
+      {shouldShowToggle && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-0.5 text-[12px] text-[#6F6F6F] font-normal"
+        >
+          {expanded ? '접기' : '더보기'}
+        </button>
+      )}
+    </div>
+  );
+};
+
+const ProfileWebsiteLink = ({ website }: { website: string }) => {
+  const href = resolveProfileWebsiteHref(website);
+  const label = website.trim();
+
+  if (!href || !label) return null;
+
+  return (
+    <a
+      href={href}
+      target={href.startsWith('mailto:') ? undefined : '_blank'}
+      rel={href.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+      className="mt-0.5 inline-block max-w-full truncate text-[12px] text-[#6F6F6F] font-normal"
+    >
+      {label}
+    </a>
+  );
+};
+
+const resolveProfileWebsiteHref = (value: string) => {
+  const text = value.trim();
+  if (!text) return '';
+
+  if (text.includes('@') && !text.includes('/')) {
+    return `mailto:${text}`;
+  }
+
+  return text.startsWith('http://') || text.startsWith('https://')
+    ? text
+    : `https://${text}`;
+};
 
 const ExpandablePostContent = ({ content }: { content: string }) => {
   const [expanded, setExpanded] = useState(false);
@@ -378,7 +514,7 @@ const ExpandablePostContent = ({ content }: { content: string }) => {
               toggleExpanded(event);
             }
           }}
-          className="mt-1 inline-block text-[14px] text-gray-400"
+          className="mt-1 inline-block text-[14px] text-[#6F6F6F]"
         >
           {expanded ? '접기' : '더보기'}
         </span>
@@ -386,6 +522,12 @@ const ExpandablePostContent = ({ content }: { content: string }) => {
     </div>
   );
 };
+
+const ProfileEmptyState = ({ message }: { message: string }) => (
+  <div className="py-24 text-center text-[15px] font-normal text-[#6F6F6F]">
+    {message}
+  </div>
+);
 
 const formatWorkCount = (workCounts?: Record<string, number>) => {
   if (!workCounts || Object.keys(workCounts).length === 0) return "작품 0개";
@@ -426,22 +568,27 @@ const formatWorkCount = (workCounts?: Record<string, number>) => {
 
 const ListSection = ({ lists }: { lists: List[] }) => {
   if (!lists || lists.length === 0) {
-    return <div className="py-24 text-center text-black font-normal text-[15px]">리스트가 비어 있습니다.</div>;
+    return <ProfileEmptyState message="아직 리스트가 없습니다" />;
   }
 
   return (
     <div className="flex flex-col px-5 gap-0 pt-0.5">
       {(lists || []).map((list) => (
-        <Link key={list.id} href={`/list/${list.slug || list.id}`}>
-          <div className="flex items-center py-1.5 active:bg-gray-50 px-2 transition-colors cursor-pointer">
+        <Link
+          key={list.id}
+          href={`/list/${list.slug || list.id}`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="flex items-center py-2.5 px-2 cursor-pointer">
             <ListFallbackImage
               src={list.cover_url}
-              className="w-[60px] h-[60px] object-cover mr-4 border border-gray-100"
+              className="w-[76px] h-[76px] object-cover mr-4 border border-gray-100"
               alt={list.title || "list cover"}
+              sizes="76px"
             />
             <div className="flex flex-col">
-              <h3 className="text-[15px] font-normal text-black mb-0.5">{list.title}</h3>
-              <p className="text-[11px] text-gray-400 font-normal">{formatWorkCount(list.work_counts)}</p>
+              <h3 className="text-[16px] font-normal text-black mb-1 line-clamp-1">{list.title}</h3>
+              <p className="text-[13px] text-[#6F6F6F] font-normal line-clamp-1">{formatWorkCount(list.work_counts)}</p>
             </div>
           </div>
         </Link>

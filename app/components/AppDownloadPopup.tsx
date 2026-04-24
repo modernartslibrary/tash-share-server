@@ -37,9 +37,9 @@ export default function AppDownloadPopup({ isOpen, onClose, type, id, slug }: Ap
         <div className="p-8 flex flex-col items-center text-center">
           <Image
             src="/icons/app_logo.png"
-            className="h-8 mb-6 w-auto"
+            className="mb-6 object-contain"
             alt="TASH"
-            width={102}
+            width={32}
             height={32}
           />
 
