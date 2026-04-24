@@ -1,6 +1,7 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Post, TASHComment } from '../types';
-import { resolveImageUrl } from '../utils/imageUtils';
+import { ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 // 작품 카테고리 라벨 반환
 function getCategoryLabel(type: string | undefined) {
@@ -37,10 +38,11 @@ function CommentItem({ comment }: { comment: TASHComment }) {
     <div className="flex flex-col">
       <div className="flex gap-3">
         <Link href={`/profile/${comment.profiles?.username || ''}`}>
-          <img
+          <ListFallbackImage
             src={comment.profiles?.avatar_url || '/icons/default_profile.jpg'}
             className="w-9 h-9 rounded-full object-cover flex-shrink-0"
             alt="avatar"
+            sizes="36px"
           />
         </Link>
         <div className="flex-1 min-w-0">
@@ -55,7 +57,13 @@ function CommentItem({ comment }: { comment: TASHComment }) {
           </p>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1 link-trigger cursor-pointer">
-              <img src="/icons/like_button_no.png" className="w-[14px] h-[14px] object-contain" alt="like" />
+              <Image
+                src="/icons/like_button_no.png"
+                className="w-[14px] h-[14px] object-contain"
+                alt="like"
+                width={14}
+                height={14}
+              />
               <span className="text-[13px] font-medium text-[#666]">{comment.likes_count || 0}</span>
             </div>
             <button className="text-[13px] font-medium text-[#666] link-trigger">답글 달기</button>
@@ -70,10 +78,11 @@ function CommentItem({ comment }: { comment: TASHComment }) {
           {comment.replies.map((reply: TASHComment) => (
             <div key={reply.id} className="flex gap-3 relative">
               <Link href={`/profile/${reply.profiles?.username || ''}`}>
-                <img
+                <ListFallbackImage
                   src={reply.profiles?.avatar_url || '/icons/default_profile.jpg'}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   alt="avatar"
+                  sizes="36px"
                 />
               </Link>
               <div className="flex-1 min-w-0">
@@ -88,7 +97,13 @@ function CommentItem({ comment }: { comment: TASHComment }) {
                 </p>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1 link-trigger cursor-pointer">
-                    <img src="/icons/like_button_no.png" className="w-[14px] h-[14px] object-contain" alt="like" />
+                    <Image
+                      src="/icons/like_button_no.png"
+                      className="w-[14px] h-[14px] object-contain"
+                      alt="like"
+                      width={14}
+                      height={14}
+                    />
                     <span className="text-[13px] font-medium text-[#666]">{reply.likes_count || 0}</span>
                   </div>
                   <button className="text-[13px] font-medium text-[#666] link-trigger">답글 달기</button>
@@ -109,10 +124,11 @@ export default function PostView({ data }: { data: Post }) {
       {/* 유저 정보 섹션 */}
       <div className="flex items-center mb-4 px-5">
         <Link href={`/profile/${data.profiles?.username || ''}`} className="flex items-center">
-          <img
+          <ListFallbackImage
             src={data.profiles?.avatar_url || '/icons/default_profile.jpg'}
             className="w-10 h-10 rounded-full border border-gray-100 object-cover mr-3"
             alt="avatar"
+            sizes="40px"
           />
           <div className="flex items-center gap-2">
             <span className="font-medium text-[17px] text-black leading-tight">{data.profiles?.username}</span>
@@ -125,10 +141,11 @@ export default function PostView({ data }: { data: Post }) {
       <div className="flex items-center mb-1 px-5 gap-4">
         <Link href={`/work/${data.works?.slug || data.works?.id}`} className="flex items-center gap-4 w-full">
           <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
-            <img
-              src={resolveImageUrl(data.works?.image_url)}
+            <WorkFallbackImage
+              src={data.works?.image_url}
               className="w-full h-full object-cover block"
               alt="work"
+              sizes="80px"
             />
           </div>
 
@@ -141,7 +158,13 @@ export default function PostView({ data }: { data: Post }) {
             </p>
             {data.rating && (
               <div className="flex items-center gap-1.5">
-                <img src="/icons/star_icon.png" className="w-3 h-3 object-contain" alt="star" />
+                <Image
+                  src="/icons/star_icon.png"
+                  className="w-3 h-3 object-contain"
+                  alt="star"
+                  width={12}
+                  height={12}
+                />
                 <span className="text-[12px] font-normal text-black">{data.rating.toFixed(1)}</span>
               </div>
             )}
@@ -157,11 +180,23 @@ export default function PostView({ data }: { data: Post }) {
       {/* 통계 섹션 */}
       <div className="flex items-center gap-4 px-5 mb-4">
         <div className="flex items-center gap-1.5 link-trigger cursor-pointer">
-          <img src="/icons/like_button_no.png" className="w-[20px] h-[20px] object-contain" alt="like" />
+          <Image
+            src="/icons/like_button_no.png"
+            className="w-[20px] h-[20px] object-contain"
+            alt="like"
+            width={20}
+            height={20}
+          />
           <span className="text-[14px] font-medium text-black">{data.likes_count || 0}</span>
         </div>
         <div className="flex items-center gap-1.5 link-trigger cursor-pointer">
-          <img src="/icons/post_comment.png" className="w-[20px] h-[20px] object-contain" alt="comment icon" />
+          <Image
+            src="/icons/post_comment.png"
+            className="w-[20px] h-[20px] object-contain"
+            alt="comment icon"
+            width={20}
+            height={20}
+          />
           <span className="text-[14px] font-medium text-black">{data.comments_count || 0}</span>
         </div>
       </div>

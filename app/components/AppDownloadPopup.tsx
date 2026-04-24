@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useDeepLink } from '../hooks/useDeepLink';
 
 interface AppDownloadPopupProps {
@@ -34,7 +35,13 @@ export default function AppDownloadPopup({ isOpen, onClose, type, id, slug }: Ap
       {/* Modal */}
       <div className="relative bg-white rounded-[24px] w-full max-w-[320px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
         <div className="p-8 flex flex-col items-center text-center">
-          <img src="/icons/app_logo.png" className="h-8 mb-6" alt="TASH" />
+          <Image
+            src="/icons/app_logo.png"
+            className="h-8 mb-6 w-auto"
+            alt="TASH"
+            width={102}
+            height={32}
+          />
 
           <h3 className="text-[18px] font-bold text-black mb-2 tracking-tight">
             앱에서 확인하시겠어요?
