@@ -553,7 +553,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
           sizes="52px"
         />
       </div>
-      <span className="mt-1.5 text-[12px] font-medium text-black line-clamp-1 w-full tracking-tight">
+      <span className="mt-1.5 text-[13px] font-medium text-black line-clamp-1 w-full tracking-tight">
         {label}
       </span>
     </div>
