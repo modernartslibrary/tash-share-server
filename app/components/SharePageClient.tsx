@@ -65,7 +65,7 @@ export default function SharePageClient({ type, id, slug, children }: SharePageC
               height={22}
             />
           </div>
-          <span className="min-w-0 text-[14px] font-medium leading-tight text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
+          <span className="min-w-0 text-[13.5px] font-medium leading-tight text-black tracking-tight">tash – 취향의 기록과 축적, 연결</span>
         </div>
 
         <button

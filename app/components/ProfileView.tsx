@@ -132,7 +132,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
   };
 
   return (
-    <div className="flex flex-col bg-white min-h-screen pb-32">
+    <div className="flex flex-col bg-white min-h-screen pb-3 sm:pb-4">
       {/* Header Section */}
       <div className="flex justify-between items-start pt-6 pb-2 px-[16px] mb-1">
         <div className="flex flex-col flex-1 min-w-0">
@@ -492,6 +492,9 @@ const ExpandablePostContent = ({ content }: { content: string }) => {
   const [expanded, setExpanded] = useState(false);
   const normalizedContent = content.trim();
   const canToggle = normalizedContent.length > 140;
+  const displayContent = expanded || !canToggle
+    ? normalizedContent
+    : `${normalizedContent.slice(0, 140).trimEnd()}... `;
 
   const toggleExpanded = (event: React.MouseEvent | React.KeyboardEvent) => {
     event.preventDefault();
@@ -501,24 +504,24 @@ const ExpandablePostContent = ({ content }: { content: string }) => {
 
   return (
     <div className="mb-3">
-      <p className={`text-[14px] text-black font-normal leading-snug whitespace-pre-wrap ${expanded ? '' : 'line-clamp-7'}`}>
-        {normalizedContent}
+      <p className="text-[15px] text-black font-normal leading-normal tracking-[-0.05em] whitespace-pre-wrap">
+        {displayContent}
+        {canToggle && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={toggleExpanded}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                toggleExpanded(event);
+              }
+            }}
+            className="inline text-[14px] text-[#6F6F6F]"
+          >
+            {expanded ? ' 접기' : '더보기'}
+          </span>
+        )}
       </p>
-      {canToggle && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={toggleExpanded}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              toggleExpanded(event);
-            }
-          }}
-          className="mt-1 inline-block text-[14px] text-[#6F6F6F]"
-        >
-          {expanded ? '접기' : '더보기'}
-        </span>
-      )}
     </div>
   );
 };

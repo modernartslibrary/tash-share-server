@@ -104,7 +104,8 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
       image = resolveProfileImageUrl(artist.profile_path) || image;
     } else if (identifier === "list") {
       const list = data as List;
-      title = list.title;
+      const listTitle = list.title?.trim() || "리스트";
+      title = listTitle.endsWith("리스트") ? listTitle : `${listTitle} 리스트`;
       description = list.description || description;
       image = resolveImageUrl(list.cover_url) || image;
     }

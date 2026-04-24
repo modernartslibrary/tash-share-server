@@ -33,7 +33,7 @@ export default function ListView({ data }: ListViewProps) {
   const workSummary = formatWorkCounts(data.work_counts);
 
   return (
-    <div className="flex flex-col bg-white min-h-screen pb-20">
+    <div className="flex flex-col bg-white min-h-screen pb-3 sm:pb-4">
       {/* 1. 리스트 썸네일 (Large, Centered) */}
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
         <div className="aspect-square overflow-hidden shadow-sm" style={SQUARE_COVER_STYLE}>

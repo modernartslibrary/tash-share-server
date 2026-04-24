@@ -173,7 +173,7 @@ export default function PostView({ data }: { data: Post }) {
       </div>
 
       {/* 본문 섹션 */}
-      <div className="text-[16px] leading-[1.2] whitespace-pre-wrap text-[#1A1A1A] px-5 mb-2 tracking-normal">
+      <div className="text-[15px] leading-normal whitespace-pre-wrap text-[#1A1A1A] px-5 mb-2 tracking-[-0.05em]">
         {data.content}
       </div>
 
