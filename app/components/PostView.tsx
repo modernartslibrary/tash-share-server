@@ -202,7 +202,7 @@ export default function PostView({ data }: { data: Post }) {
       </div>
 
       {/* 댓글 섹션 */}
-      <div className="px-5 pt-2 pb-12">
+      <div className="px-5 pt-2 pb-3 sm:pb-4">
         <h3 className="text-[17px] font-medium text-black mb-2">댓글</h3>
 
         {data.comments && data.comments.length > 0 ? (
@@ -212,7 +212,7 @@ export default function PostView({ data }: { data: Post }) {
             ))}
           </div>
         ) : (
-          <p className="text-[14px] text-gray-400 py-8 text-center cursor-pointer link-trigger active:opacity-50 transition-opacity">
+          <p className="text-[14px] text-[#6F6F6F] text-left cursor-pointer link-trigger">
             첫 댓글을 남겨보세요.
           </p>
         )}
