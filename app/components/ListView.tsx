@@ -6,7 +6,7 @@ import { List } from '../types';
 import { ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 const SQUARE_COVER_STYLE = {
-  width: 'clamp(188px, 58vw, 330px)',
+  width: 'clamp(204px, 62vw, 352px)',
 };
 
 interface ListViewProps {
@@ -41,7 +41,7 @@ export default function ListView({ data }: ListViewProps) {
             src={data.cover_url}
             className="w-full h-full object-cover"
             alt={data.title}
-            sizes="(max-width: 672px) 58vw, 330px"
+            sizes="(max-width: 672px) 62vw, 352px"
             loading="eager"
           />
         </div>
@@ -49,7 +49,7 @@ export default function ListView({ data }: ListViewProps) {
 
       {/* 2. 리스트 타이틀 (Large, Centered) */}
       <div className="px-10 text-center mb-1">
-        <h1 className="text-[24px] font-bold text-black tracking-tight leading-[1.2]">
+        <h1 className="text-[26px] font-[950] text-black tracking-tight leading-[1.2]">
           {data.title}
         </h1>
       </div>

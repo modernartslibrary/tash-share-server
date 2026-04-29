@@ -5,7 +5,7 @@ import { Artist, SharePreviewUser, SharePreviewWork, Work } from '../types';
 import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 const SQUARE_COVER_STYLE = {
-  width: 'clamp(188px, 58vw, 330px)',
+  width: 'clamp(204px, 62vw, 352px)',
 };
 
 const META_TO_BIO_SPACING = 'mt-4 sm:mt-5';
@@ -31,7 +31,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
             src={data.profile_path}
             className="w-full h-full object-cover"
             alt={data.name}
-            sizes="(max-width: 672px) 58vw, 330px"
+            sizes="(max-width: 672px) 62vw, 352px"
             loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 pointer-events-none" />
@@ -39,7 +39,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
       </div>
 
       <div className="px-6">
-        <h1 className="text-[26px] font-black text-black tracking-tighter leading-tight mb-1.5">
+        <h1 className="text-[26px] font-[950] text-black tracking-tighter leading-tight mb-1.5">
           {data.name}
         </h1>
         {(data.birth_date || data.birth_place) && (

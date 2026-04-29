@@ -7,11 +7,11 @@ import { Credit, SharePreviewList, SharePreviewPost, SharePreviewUser, Work } fr
 import { ArtistFallbackImage, ListFallbackImage, WorkFallbackImage } from './FallbackImage';
 
 const SQUARE_COVER_STYLE = {
-  width: 'clamp(188px, 58vw, 330px)',
+  width: 'clamp(204px, 62vw, 352px)',
 };
 
 const POSTER_COVER_STYLE = {
-  width: 'clamp(162px, 46vw, 248px)',
+  width: 'clamp(174px, 49vw, 266px)',
 };
 
 const META_TO_BIO_SPACING = 'mt-4 sm:mt-5';
@@ -74,7 +74,7 @@ function MovieLayout({
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
-            sizes="(max-width: 672px) 46vw, 248px"
+            sizes="(max-width: 672px) 49vw, 266px"
             loading="eager"
           />
         </div>
@@ -82,7 +82,7 @@ function MovieLayout({
 
       <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tighter">
+          <h1 className="text-[26px] font-[950] text-black leading-[1.2] tracking-tighter">
             {data.work_title}
           </h1>
           {data.rating_count && data.rating_count > 0 ? (
@@ -139,7 +139,7 @@ function MovieLayout({
                   href={`/artist/${credit.slug || credit.id}`}
                   className="link-trigger flex items-center gap-2 group cursor-pointer"
                 >
-                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 flex-shrink-0">
                     <ArtistFallbackImage
                       src={credit.profile_path}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -177,7 +177,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
-            sizes="(max-width: 672px) 58vw, 330px"
+            sizes="(max-width: 672px) 62vw, 352px"
             loading="eager"
           />
         </div>
@@ -185,7 +185,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
 
       <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
+          <h1 className="text-[26px] font-[950] text-black leading-[1.2] tracking-tight">
             {data.work_title}
           </h1>
         </div>
@@ -250,7 +250,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                   href={`/artist/${credit.slug || credit.id}`}
                   className="link-trigger flex items-center gap-2 group cursor-pointer"
                 >
-                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 flex-shrink-0">
                     <ArtistFallbackImage
                       src={credit.profile_path}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -288,7 +288,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
-            sizes="(max-width: 672px) 58vw, 330px"
+            sizes="(max-width: 672px) 62vw, 352px"
             loading="eager"
           />
         </div>
@@ -296,7 +296,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
 
       <div className="px-5">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <h1 className="text-[26px] font-black text-black leading-[1.2] tracking-tight">
+          <h1 className="text-[26px] font-[950] text-black leading-[1.2] tracking-tight">
             {data.work_title}
           </h1>
         </div>
@@ -347,7 +347,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                   key={credit.id || `credit-${idx}`}
                   className="link-trigger flex items-center gap-2 group cursor-pointer"
                 >
-                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                  <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 flex-shrink-0">
                     <ArtistFallbackImage
                       src={credit.profile_path}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -382,14 +382,14 @@ function BookLayout({ data }: { data: Work }) {
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
-            sizes="(max-width: 672px) 46vw, 248px"
+            sizes="(max-width: 672px) 49vw, 266px"
             loading="eager"
           />
         </div>
       </div>
 
       <div className="px-5">
-        <h1 className="text-[26px] font-black text-black leading-[1.2] mb-2 tracking-tighter">
+        <h1 className="text-[26px] font-[950] text-black leading-[1.2] mb-2 tracking-tighter">
           {data.work_title}
         </h1>
         <p className="text-[12px] text-[#6F6F6F] font-normal tracking-tight">
@@ -421,7 +421,7 @@ function DefaultLayout({ data }: { data: Work }) {
             src={data.image_url}
             className="w-full h-full object-cover"
             alt={data.work_title}
-            sizes="(max-width: 672px) 58vw, 330px"
+            sizes="(max-width: 672px) 62vw, 352px"
             loading="eager"
           />
         </div>
@@ -508,8 +508,9 @@ function PreviewSectionTitle({ title, showMore = false }: { title: string; showM
 function PreviewPostRow({ post }: { post: SharePreviewPost }) {
   const username = post.profiles?.username || post.profiles?.nickname || 'Unknown';
   const avatarAlt = post.profiles?.username || post.profiles?.nickname || 'profile';
+  const trimmedContent = post.content?.trim();
   const content = (
-    <div className="flex items-start gap-3">
+    <div className={`flex gap-3 ${trimmedContent ? 'items-start' : 'items-center'}`}>
       <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
         <ListFallbackImage
           src={post.profiles?.avatar_url}
@@ -523,9 +524,11 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
           <span className="text-[15px] font-semibold text-black line-clamp-1">{username}</span>
           <span className="text-[12px] text-[#6F6F6F] shrink-0">{formatTimeAgo(post.created_at)}</span>
         </div>
-        <p className="text-[15px] leading-[1.45] text-[#1A1A1A] whitespace-pre-wrap line-clamp-2 tracking-tight">
-          {post.content?.trim() ? post.content : '내용이 없습니다'}
-        </p>
+        {trimmedContent && (
+          <p className="text-[15px] leading-[1.45] text-[#1A1A1A] whitespace-pre-wrap line-clamp-2 tracking-tight">
+            {post.content}
+          </p>
+        )}
       </div>
     </div>
   );
