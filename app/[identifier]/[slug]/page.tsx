@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import WorkView from "../../components/WorkView";
@@ -15,73 +16,90 @@ export const revalidate = 0;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const SHARE_CACHE_REVALIDATE_SECONDS = 300;
+
+const normalizeIdentifier = (identifier: string) =>
+  ["movie", "tv", "track", "album", "book"].includes(identifier)
+    ? "work"
+    : identifier;
+
+async function fetchContent(
+  identifier: string,
+  slug: string,
+): Promise<{ data: TASHData | null; error: string | null }> {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return { data: null, error: "Config Missing" };
+    }
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const normalizedIdentifier = normalizeIdentifier(identifier);
+
+    let data: TASHData | null = null;
+    let errorMessage: string | null = null;
+
+    switch (normalizedIdentifier) {
+      case 'work': {
+        const { data: workData, error } = await client.rpc("get_public_work_by_slug", {
+          p_slug: slug,
+        });
+        data = workData;
+        errorMessage = error?.message || null;
+        break;
+      }
+      case 'artist': {
+        const { data: artistData, error } = await client.rpc("get_public_artist_by_slug", {
+          p_slug: slug,
+        });
+        data = artistData;
+        errorMessage = error?.message || null;
+        break;
+      }
+      case 'post': {
+        const { data: postData, error } = await client.rpc("get_public_post_by_slug", {
+          p_slug: slug,
+        });
+        data = postData;
+        errorMessage = error?.message || null;
+        break;
+      }
+      case 'list': {
+        const { data: listData, error } = await client.rpc("get_public_list_by_slug", {
+          p_slug: slug,
+        });
+        data = listData;
+        errorMessage = error?.message || null;
+        break;
+      }
+      default:
+        return { data: null, error: "Unsupported Identifier" };
+    }
+
+    if (errorMessage) return { data: null, error: errorMessage };
+    if (!data) return { data: null, error: 'not_found' };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: String(err) };
+  }
+}
 
 const cachedFetchContent = cache(
-  async function fetchContent(identifier: string, slug: string): Promise<{ data: TASHData | null; error: string | null }> {
-    try {
-      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        return { data: null, error: "Config Missing" };
-      }
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
-        ? "work"
-        : identifier;
-
-      let data: TASHData | null = null;
-      let errorMessage: string | null = null;
-
-      switch (normalizedIdentifier) {
-        case 'work': {
-          const { data: workData, error } = await client.rpc("get_public_work_by_slug", {
-            p_slug: slug,
-          });
-          data = workData;
-          errorMessage = error?.message || null;
-          break;
-        }
-        case 'artist': {
-          const { data: artistData, error } = await client.rpc("get_public_artist_by_slug", {
-            p_slug: slug,
-          });
-          data = artistData;
-          errorMessage = error?.message || null;
-          break;
-        }
-        case 'post': {
-          const { data: postData, error } = await client.rpc("get_public_post_by_slug", {
-            p_slug: slug,
-          });
-          data = postData;
-          errorMessage = error?.message || null;
-          break;
-        }
-        case 'list': {
-          const { data: listData, error } = await client.rpc("get_public_list_by_slug", {
-            p_slug: slug,
-          });
-          data = listData;
-          errorMessage = error?.message || null;
-          break;
-        }
-        default:
-          return { data: null, error: "Unsupported Identifier" };
-      }
-
-      if (errorMessage) return { data: null, error: errorMessage };
-      if (!data) return { data: null, error: 'not_found' };
-      return { data, error: null };
-    } catch (err) {
-      return { data: null, error: String(err) };
-    }
-  }
+  async function fetchCachedContent(identifier: string, slug: string) {
+    const normalizedIdentifier = normalizeIdentifier(identifier);
+    return unstable_cache(
+      () => fetchContent(identifier, slug),
+      ['share-content', normalizedIdentifier, slug],
+      {
+        revalidate: SHARE_CACHE_REVALIDATE_SECONDS,
+        tags: [`share:${normalizedIdentifier}:${slug}`],
+      },
+    )();
+  },
 );
 
 export async function generateMetadata({ params }: { params: Promise<{ identifier: string; slug: string }> }): Promise<Metadata> {
   const { identifier, slug } = await params;
   const { data } = await cachedFetchContent(identifier, slug);
-  const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
-    ? "work"
-    : identifier;
+  const normalizedIdentifier = normalizeIdentifier(identifier);
 
   let title = "TASH";
   let description = "창작물을 발견하고 기록하는 공간";
@@ -127,9 +145,7 @@ export async function generateMetadata({ params }: { params: Promise<{ identifie
 export default async function SharedItemPage({ params }: { params: Promise<{ identifier: string; slug: string }> }) {
   const { identifier, slug } = await params;
   const { data } = await cachedFetchContent(identifier, slug);
-  const normalizedIdentifier = ["movie", "tv", "track", "album", "book"].includes(identifier)
-    ? "work"
-    : identifier;
+  const normalizedIdentifier = normalizeIdentifier(identifier);
 
   if (normalizedIdentifier === "work" && identifier !== "work") {
     redirect(`/work/${encodeURIComponent(slug)}`);

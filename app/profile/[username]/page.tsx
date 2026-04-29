@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { cache, Suspense } from "react";
 import ProfileView from "../../components/ProfileView";
 import SharePageClient from "../../components/SharePageClient";
@@ -10,36 +11,48 @@ export const revalidate = 0;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const PROFILE_CACHE_REVALIDATE_SECONDS = 300;
+
+async function fetchProfile(
+  username: string,
+): Promise<{ data: Profile | null; error: string | null }> {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return { data: null, error: "Config Missing" };
+    }
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const { data: profileData, error } = await client.rpc(
+      "get_public_profile_by_username",
+      {
+        p_username: username,
+      },
+    );
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    if (!profileData) {
+      return { data: null, error: "not_found" };
+    }
+
+    return { data: profileData as Profile, error: null };
+  } catch (err) {
+    return { data: null, error: String(err) };
+  }
+}
 
 const cachedFetchProfile = cache(
-  async function fetchProfile(
-    username: string,
-  ): Promise<{ data: Profile | null; error: string | null }> {
-    try {
-      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        return { data: null, error: "Config Missing" };
-      }
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      const { data: profileData, error } = await client.rpc(
-        "get_public_profile_by_username",
-        {
-          p_username: username,
-        },
-      );
-
-      if (error) {
-        return { data: null, error: error.message };
-      }
-
-      if (!profileData) {
-        return { data: null, error: "not_found" };
-      }
-
-      return { data: profileData as Profile, error: null };
-    } catch (err) {
-      return { data: null, error: String(err) };
-    }
+  async function fetchCachedProfile(username: string) {
+    return unstable_cache(
+      () => fetchProfile(username),
+      ['share-profile', username],
+      {
+        revalidate: PROFILE_CACHE_REVALIDATE_SECONDS,
+        tags: [`profile:${username}`],
+      },
+    )();
   },
 );
 
