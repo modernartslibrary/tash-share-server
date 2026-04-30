@@ -68,6 +68,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
                 <Link
                   key={work.id}
                   href={`/work/${work.slug || work.id}`}
+                  prefetch={false}
                   className="link-trigger flex w-[124px] sm:w-[140px] flex-col"
                 >
                   <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
@@ -152,7 +153,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   }
 
   return (
-    <Link href={`/profile/${user.username}`} data-allow-navigation="true" className="block">
+    <Link href={`/profile/${user.username}`} prefetch={false} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );

@@ -289,7 +289,7 @@ const PostGrid = ({ posts, isArchive }: { posts: Post[], isArchive?: boolean }) 
       const key = getPostGridKey(post, index);
 
       return (
-        <Link key={key} href={href}>
+        <Link key={key} href={href} prefetch={false}>
           <div className="aspect-square bg-white relative overflow-hidden group cursor-pointer active:opacity-80 transition-opacity">
             {isArtist ? (
               <ArtistFallbackImage
@@ -342,6 +342,7 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
         <Link
           key={key}
           href={href}
+          prefetch={false}
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <div className="py-2 px-[16px] cursor-pointer">
@@ -580,6 +581,7 @@ const ListSection = ({ lists }: { lists: List[] }) => {
         <Link
           key={list.id}
           href={`/list/${list.slug || list.id}`}
+          prefetch={false}
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <div className="flex items-center py-2.5 px-2 cursor-pointer">

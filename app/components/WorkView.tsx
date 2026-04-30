@@ -137,6 +137,7 @@ function MovieLayout({
                 <Link
                   key={credit.id || `credit-${idx}`}
                   href={`/artist/${credit.slug || credit.id}`}
+                  prefetch={false}
                   className="link-trigger flex items-center gap-2 group cursor-pointer"
                 >
                   <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 flex-shrink-0">
@@ -248,6 +249,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                 <Link
                   key={credit.id || `credit-${idx}`}
                   href={`/artist/${credit.slug || credit.id}`}
+                  prefetch={false}
                   className="link-trigger flex items-center gap-2 group cursor-pointer"
                 >
                   <div className="w-[64px] h-[64px] overflow-hidden bg-gray-50 flex-shrink-0">
@@ -320,6 +322,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
           <div className="px-5">
             <Link
               href={`/work/${data.parent_album_cache.slug || data.parent_album_cache.id}`}
+              prefetch={false}
               className="link-trigger flex items-center transition-colors cursor-pointer"
             >
               <div className="w-[64px] h-[64px] overflow-hidden flex-shrink-0">
@@ -538,7 +541,7 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
   }
 
   return (
-    <Link href={`/post/${post.slug || post.id}`} data-allow-navigation="true" className="block">
+    <Link href={`/post/${post.slug || post.id}`} prefetch={false} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );
@@ -567,7 +570,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   }
 
   return (
-    <Link href={`/profile/${user.username}`} data-allow-navigation="true" className="block">
+    <Link href={`/profile/${user.username}`} prefetch={false} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );
@@ -594,7 +597,7 @@ function PreviewListCard({ list }: { list: SharePreviewList }) {
   );
 
   return (
-    <Link href={`/list/${list.slug || list.id}`} data-allow-navigation="true" className="block">
+    <Link href={`/list/${list.slug || list.id}`} prefetch={false} data-allow-navigation="true" className="block">
       {content}
     </Link>
   );

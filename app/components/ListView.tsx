@@ -63,7 +63,7 @@ export default function ListView({ data }: ListViewProps) {
 
       {/* 4. 제작자 프로필 아이디 (Centered) */}
       <div className="px-10 text-center mb-6">
-        <Link href={`/profile/${data.profiles?.username || ''}`}>
+        <Link href={`/profile/${data.profiles?.username || ''}`} prefetch={false}>
           <p className="inline-block text-[14px] text-[#6F6F6F] font-normal cursor-pointer">
             @{data.profiles?.username || 'unknown'}
           </p>
@@ -80,7 +80,7 @@ export default function ListView({ data }: ListViewProps) {
       {/* 6. 작품 목록 */}
       <div className="flex flex-col pt-2">
         {(data.items || []).map((work) => (
-          <Link key={work.id} href={`/work/${work.slug || work.id}`}>
+          <Link key={work.id} href={`/work/${work.slug || work.id}`} prefetch={false}>
             <div
               className="flex items-center py-3 px-6 active:bg-gray-50 transition-colors cursor-pointer group"
             >
