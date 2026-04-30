@@ -126,7 +126,7 @@ export default function PostView({ data }: { data: Post }) {
         <Link href={`/profile/${data.profiles?.username || ''}`} prefetch={false} className="flex items-center">
           <ListFallbackImage
             src={data.profiles?.avatar_url || '/icons/default_profile.jpg'}
-            className="w-10 h-10 rounded-full border border-gray-100 object-cover mr-3"
+            className="w-10 h-10 rounded-full object-cover mr-3"
             alt="avatar"
             sizes="40px"
           />

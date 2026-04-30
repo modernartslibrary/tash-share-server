@@ -69,7 +69,7 @@ function MovieLayout({
   return (
     <div className="flex flex-col bg-white">
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
-        <div className="aspect-[2/3] relative overflow-hidden border border-gray-100" style={POSTER_COVER_STYLE}>
+        <div className="aspect-[2/3] relative overflow-hidden" style={POSTER_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
@@ -171,7 +171,7 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
     <div className="flex flex-col bg-white">
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
         <div
-          className="aspect-square relative overflow-hidden border border-gray-100 mx-auto"
+          className="aspect-square relative overflow-hidden mx-auto"
           style={SQUARE_COVER_STYLE}
         >
           <WorkFallbackImage
@@ -283,7 +283,7 @@ function TrackLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
     <div className="flex flex-col bg-white">
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
         <div
-          className="aspect-square relative overflow-hidden border border-gray-100"
+          className="aspect-square relative overflow-hidden"
           style={SQUARE_COVER_STYLE}
         >
           <WorkFallbackImage
@@ -380,7 +380,7 @@ function BookLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
       <div className="flex justify-center pt-8 pb-6 px-5 sm:pt-10">
-        <div className="aspect-[10/16] relative overflow-hidden bg-white border border-gray-100/50" style={POSTER_COVER_STYLE}>
+        <div className="aspect-[10/16] relative overflow-hidden bg-white" style={POSTER_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
@@ -419,7 +419,7 @@ function DefaultLayout({ data }: { data: Work }) {
   return (
     <div className="flex flex-col bg-white">
       <div className="flex flex-col items-center pt-8 pb-6 px-5 sm:pt-10">
-        <div className="aspect-square relative rounded-[16px] overflow-hidden mb-8 border border-gray-100" style={SQUARE_COVER_STYLE}>
+        <div className="aspect-square relative rounded-[16px] overflow-hidden mb-8" style={SQUARE_COVER_STYLE}>
           <WorkFallbackImage
             src={data.image_url}
             className="w-full h-full object-cover"
@@ -514,7 +514,7 @@ function PreviewPostRow({ post }: { post: SharePreviewPost }) {
   const trimmedContent = post.content?.trim();
   const content = (
     <div className={`flex gap-3 ${trimmedContent ? 'items-start' : 'items-center'}`}>
-      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-50">
         <ListFallbackImage
           src={post.profiles?.avatar_url}
           className="h-full w-full object-cover"
@@ -551,7 +551,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   const label = user.username || user.nickname || 'Unknown';
   const content = (
     <div className="flex w-[60px] flex-col items-center text-center">
-      <div className="h-[52px] w-[52px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+      <div className="h-[52px] w-[52px] overflow-hidden rounded-full bg-gray-50">
         <ListFallbackImage
           src={user.avatar_url}
           className="h-full w-full object-cover"
@@ -579,7 +579,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
 function PreviewListCard({ list }: { list: SharePreviewList }) {
   const content = (
     <div className="flex w-[124px] sm:w-[140px] flex-col">
-      <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
+      <div className="aspect-square overflow-hidden bg-gray-50">
         <ListFallbackImage
           src={list.cover_url}
           className="h-full w-full object-cover"

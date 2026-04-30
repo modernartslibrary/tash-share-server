@@ -71,7 +71,7 @@ export default function ArtistView({ data }: ArtistViewProps) {
                   prefetch={false}
                   className="link-trigger flex w-[124px] sm:w-[140px] flex-col"
                 >
-                  <div className="aspect-square overflow-hidden border border-gray-100 bg-gray-50">
+                  <div className="aspect-square overflow-hidden bg-gray-50">
                     <WorkFallbackImage
                       src={work.image_url}
                       className="w-full h-full object-cover"
@@ -134,7 +134,7 @@ function PreviewUserCard({ user }: { user: SharePreviewUser }) {
   const label = user.username || user.nickname || 'Unknown';
   const content = (
     <div className="flex w-[60px] flex-col items-center text-center">
-      <div className="h-[52px] w-[52px] overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+      <div className="h-[52px] w-[52px] overflow-hidden rounded-full bg-gray-50">
         <ListFallbackImage
           src={user.avatar_url}
           className="h-full w-full object-cover"

@@ -157,7 +157,7 @@ export default function ProfileView({ data }: ProfileViewProps) {
           )}
         </div>
 
-        <div className="w-[76px] h-[76px] overflow-hidden rounded-full border border-gray-100 ml-4">
+        <div className="w-[76px] h-[76px] overflow-hidden rounded-full ml-4">
           <ListFallbackImage
             src={data.avatar_url}
             className="w-full h-full object-cover"
@@ -351,21 +351,21 @@ const PostList = ({ posts, hideStats, isArchive }: { posts: Post[], hideStats?: 
                 {isArtist ? (
                   <ArtistFallbackImage
                     src={post.artist_profile_path}
-                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
+                    className="w-full h-full object-cover"
                     alt={post.artist_name || "artist"}
                     sizes="76px"
                   />
                 ) : isList ? (
                   <ListFallbackImage
                     src={post.list?.cover_url}
-                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
+                    className="w-full h-full object-cover"
                     alt={post.list?.title || "list"}
                     sizes="76px"
                   />
                 ) : (
                   <WorkFallbackImage
                     src={post.works?.image_url}
-                    className={`w-full h-full object-cover ${isArchive ? '' : 'border border-gray-100'}`}
+                    className="w-full h-full object-cover"
                     alt={post.works?.work_title || "post thumbnail"}
                     sizes="76px"
                   />
@@ -587,7 +587,7 @@ const ListSection = ({ lists }: { lists: List[] }) => {
           <div className="flex items-center py-2.5 px-2 cursor-pointer">
             <ListFallbackImage
               src={list.cover_url}
-              className="w-[76px] h-[76px] object-cover mr-4 border border-gray-100"
+              className="w-[76px] h-[76px] object-cover mr-4"
               alt={list.title || "list cover"}
               sizes="76px"
             />

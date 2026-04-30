@@ -36,7 +36,7 @@ export default function ListView({ data }: ListViewProps) {
     <div className="flex flex-col bg-white min-h-screen pb-3 sm:pb-4">
       {/* 1. 리스트 썸네일 (Large, Centered) */}
       <div className="flex justify-center pt-8 pb-6 px-6 sm:pt-10">
-        <div className="aspect-square overflow-hidden shadow-sm" style={SQUARE_COVER_STYLE}>
+        <div className="aspect-square overflow-hidden" style={SQUARE_COVER_STYLE}>
           <ListFallbackImage
             src={data.cover_url}
             className="w-full h-full object-cover"
