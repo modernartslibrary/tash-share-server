@@ -165,7 +165,12 @@ function MovieLayout({
 }
 
 function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Credit[] }) {
+  const [isTrackListExpanded, setIsTrackListExpanded] = useState(false);
   const hasBiography = Boolean(data.biography);
+  const tracks = data.tracks_cache || [];
+  const hasMoreThanFiveTracks = tracks.length > 5;
+  const hasMoreThanTenTracks = tracks.length > 10;
+  const visibleTracks = isTrackListExpanded ? tracks.slice(0, 10) : tracks.slice(0, 5);
 
   return (
     <div className="flex flex-col bg-white">
@@ -209,16 +214,25 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
       )}
 
       <div className={hasBiography ? SECTION_STACK_CLASS : `${META_TO_BIO_SPACING} flex flex-col gap-5 sm:gap-6`}>
-        {data.tracks_cache && data.tracks_cache.length > 0 && (
+        {tracks.length > 0 && (
           <div className="px-5">
             <div className={`flex items-center gap-2 ${DENSE_SECTION_TITLE_CLASS}`}>
               <h3 className="text-[14px] font-normal text-black">트랙 리스트</h3>
+              {hasMoreThanFiveTracks && (
+                <button
+                  type="button"
+                  onClick={() => setIsTrackListExpanded(!isTrackListExpanded)}
+                  className="text-[14px] text-[#6F6F6F] font-normal"
+                >
+                  {isTrackListExpanded ? '접기' : '펼치기'}
+                </button>
+              )}
             </div>
             <div className="flex flex-col">
-              {data.tracks_cache.map((track) => (
+              {visibleTracks.map((track) => (
                 <div
                   key={track.id}
-                  className="link-trigger flex items-start py-0.5 gap-2 cursor-pointer"
+                  className="link-trigger flex items-start py-1.5 gap-2 cursor-pointer"
                 >
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <span className="text-[14px] font-normal text-black w-6 text-left">{track.track_number}.</span>
@@ -238,6 +252,14 @@ function AlbumLayout({ data, curatedCredits }: { data: Work; curatedCredits: Cre
                 </div>
               ))}
             </div>
+            {isTrackListExpanded && hasMoreThanTenTracks && (
+              <button
+                type="button"
+                className="link-trigger mt-1 text-[13px] text-[#6F6F6F] font-normal tracking-tight"
+              >
+                트랙 더 보기
+              </button>
+            )}
           </div>
         )}
 
